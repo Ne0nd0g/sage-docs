@@ -1,0 +1,14 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Sage",
+  "description": "Documentation for Sage, an AI-driven agent for the Mythic command and control framework.",
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": [
+        "index"
+      ]
+    }
+  ]
+}
