@@ -1,0 +1,70 @@
+---
+title: "Tools and capabilities"
+description: "Sage's tool inventory: the read-only vs. guarded split, the generic capability layer, and the tool drop zone."
+---
+
+Sage classifies its tools as **read-only** or **guarded/offensive**. The split determines behavior
+across modes: guarded tools are approval-gated in supervised mode and denied in conversation mode;
+only guarded tools can change target or Mythic state. Every tool carries an explicit safety
+classification in source, and CI enforces that none ships unclassified; an undecorated method
+defaults to guarded at runtime.
+
+## Read-only vs. guarded
+
+| Area | Example tools | Classification |
+|---|---|---|
+| Observe | `list_callbacks`, `get_task_history_for_callback`, `get_all_uploaded_files` | read-only |
+| Tasking | `issue_task_and_waitfor_task_output` | guarded |
+| Capabilities | `execute_capability`, `build_capability_commands` | guarded / read-only |
+| Payloads | `create_payload`, `download_payload` | guarded / read-only |
+| BloodHound ingest | `ingest_collection` | guarded |
+| Credentials | `read_credentials`, `add_credential` | read-only / guarded |
+| Tradecraft | `get_ttp_guidance`, `list_ttp_categories` | read-only |
+| Sandbox | `sandbox_exec` | guarded |
+
+The public tool inventory is available in chat with `/tools`: a deterministic list, no model
+call.
+
+## The capability layer
+
+On top of the tools sits a typed capability layer: actions with preconditions, effects, and
+structured verifiers that the planner chains from observed state. It models an attack chain
+generically (collect graph, escalate through controlled execution, extend rights, harvest
+credentials, forge tickets), and each step advances only on verified proof of the previous one.
+Nothing is recorded on assertion alone, and no benchmark-specific paths are baked into the product.
+
+## Extension points
+
+Three parts of Sage are plain files in the Sage repository, meant for you to edit rather than
+rebuild:
+
+- **Agent prompts.** Each agent's system prompt is a markdown file in
+  `Payload_Type/sage/prompts/`, one per agent from `supervisor.md` to `sandbox.md`. Edit a file
+  and start a new chat: each new session re-reads every prompt, so your change takes effect
+  without a restart. A restart is only needed for code changes. This is how you ship your own
+  playbook with an engagement.
+- **The TTP library.** `Payload_Type/sage/ttps/` holds over two hundred markdown tradecraft
+  files covering Active Directory attack paths, ADCS abuse, ACL chains, and failure triage,
+  among others. The agents plan from this library; editing it tunes what Sage knows.
+- **The tool drop zone.** Covered below: `Payload_Type/sage/tools/` stages operator-supplied
+  binaries into Mythic on demand.
+
+## Tool drop zone
+
+`Payload_Type/sage/tools/` is an operator drop zone for tool binaries. It ships **empty**. Sage
+bundles no offensive binaries. Drop a binary in and Sage discovers it and stages it into Mythic on
+demand instead of making you upload it by hand. `download_tool` can also fetch a pinned,
+sha256-verified binary from its tradecraft source into this folder.
+
+## Scope preflight
+
+Each guarded tool maps to a required Mythic bot-token scope (`callback.write`, `payload.write`,
+`credential.write`, `file.write`). A tool whose scope your channel token lacks is disabled up
+front rather than failing mid-run.
+
+## The authoritative source
+
+Because the exposed set is assembled in code, treat any reference (including the repository's
+[`docs/reference/TOOLS_AND_CAPABILITIES.md`](https://github.com/MythicAgents/Sage/blob/main/docs/reference/TOOLS_AND_CAPABILITIES.md))
+as a snapshot, and the source as authoritative. Sage discovers commands and validates arguments
+against the **live payload's advertised command schema** at runtime.

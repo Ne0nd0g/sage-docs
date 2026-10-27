@@ -1,0 +1,90 @@
+---
+title: "Release notes"
+description: "What changed in each Sage release, adapted from the Sage changelog."
+---
+
+Adapted from the Sage repository's
+[`CHANGELOG.md`](https://github.com/MythicAgents/Sage/blob/main/CHANGELOG.md), which is
+authoritative. Sage follows Semantic Versioning; before 1.0, behavior and configuration may change
+between minor releases. For what each release was validated against, see
+[Limitations and validated configuration](/understand/limitations).
+
+## Unreleased
+
+Changes on Sage's main branch since `v0.2.0`, not yet in a tagged release:
+
+- `mythic-cli install github` pulls the published release image from GitHub Container Registry
+  instead of building Sage locally. Set `sage_use_build_context` to `true` in Mythic's
+  configuration to keep building from source.
+- The container no longer runs Sage as root. It runs as the owner of the installed service
+  directory, so a later `mythic-cli install` no longer fails on root-owned files. The first start
+  hands back root-owned files left by earlier versions.
+- The startup version banner appears in the container log at Mythic's default log level.
+- A request's final message records how the request ended (`completed`, `blocked`, `checkpoint`,
+  `stopped`, `cancelled`, or `error`) as `turn_outcome` in its metadata. Mythic stores only
+  `complete`, `error`, and `cancelled` as a request status, so this field gives the real ending.
+
+## v0.2.0 (2026-10-23)
+
+Sage 0.2.0 makes supervised mode objective-led, makes request endings honest, and ships Sage as a
+published, versioned container image.
+
+### Added
+
+- **Objective-led supervised mode.** A supervised channel can pursue a stated objective across
+  turns, one approved action at a time. See
+  [Objective-led supervised runs](/understand/authority-modes#objective-led-supervised-runs).
+- **Container images** on GitHub Container Registry for `linux/amd64` and `linux/arm64`:
+  `ghcr.io/mythicagents/sage:0.2.0` (also `:0.2`), `:latest` for the newest commit on main, and
+  `:sha-<commit>` for an exact build.
+- **Version reporting.** The startup log reports Sage's version, the image's build commit, and a
+  fingerprint of the running source.
+- **`/tools`** lists Sage's tools and their access requirements without a model call, and
+  **`/report`** produces an operation-wide identity report.
+- **Provider settings.** For the `openai` provider, `SAGE_REASONING_EFFORT` and
+  `SAGE_PROVIDER_RETRY_POLICY=transient-v1` are available. Both are optional.
+- **Database location.** `SAGE_DATABASE_PATH` and `PHOENIX_WORKING_DIR` move the Sage and Phoenix
+  databases off the bind-mounted service directory.
+
+### Changed
+
+- Mythic shows Sage's own release version for the chat container, rather than the Mythic framework
+  version.
+- Commands for registered executables are built from each tool's contract, which repairs legacy
+  verbs and option syntax before the approval card is shown.
+- Approval cards carry decision context and list all three operator actions. Guard errors name
+  their remedy, and the engagement ledger is surfaced at the end of each turn.
+- All Sage tables share one database, `sage.db`.
+- Dependency pins were refreshed, including an updated `certifi` CA bundle.
+
+### Fixed
+
+- A request that Sage stops on its own (a routing loop, no progress, or a blocker) no longer
+  reports "Completed." Every turn ends as completed, blocked, or checkpoint.
+- When a request ends inside a specialist agent, the final message and reason reach the main Sage
+  window.
+- Repeated failures of the same command on the same callback stop the request at a per-request
+  cap, even when credentials or arguments rotate.
+- Startup fails with an error naming the path when SQLite cannot open or lock `sage.db`.
+
+### Known issues
+
+- macOS Docker Desktop and OrbStack need the database override described in
+  [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
+- Some reported dependency vulnerabilities remain because upstream packages pin the affected
+  versions.
+- Runtime state written as root can block a later reinstall by a non-root user; fixed in
+  Unreleased.
+
+### Validation
+
+The offline suite (9,023 tests), repository-boundary guards, and repo-hygiene checks pass. The
+live-range and clean-clone Docker qualification recorded for 0.1.0-beta were not repeated, so the
+0.1.0-beta configuration remains the latest live-validated one.
+
+## v0.1.0-beta (2026-08-26)
+
+First beta: a bounded assisted-mode capability with a background findings watcher and the locked
+Sage Watcher profile. See the
+[0.1.0-beta release notes](https://github.com/MythicAgents/Sage/blob/main/docs/releases/v0.1.0-beta.md)
+for the validated support matrix and limits.

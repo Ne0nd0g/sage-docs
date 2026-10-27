@@ -2,13 +2,69 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Sage",
-  "description": "Documentation for Sage, an AI-driven agent for the Mythic command and control framework.",
-  "navigation": [
-    {
-      "group": "Get Started",
-      "pages": [
-        "index"
-      ]
+  "description": "Documentation for Sage, an AI operator for the Mythic command and control framework.",
+  "logo": {
+    "light": "/assets/sage.png",
+    "dark": "/assets/sage.png",
+    "href": "/"
+  },
+  "favicon": "/assets/favicon.png",
+  "colors": {
+    "primary": "#8B5CF6",
+    "light": "#22D3EE",
+    "dark": "#EC4899"
+  },
+  "background": {
+    "decoration": "gradient",
+    "color": {
+      "light": "#FCFAFF",
+      "dark": "#0B0716"
     }
-  ]
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": ["index", "quickstart"]
+      },
+      {
+        "group": "Understand",
+        "pages": [
+          "understand/how-sage-works",
+          "understand/authority-modes",
+          "understand/security-and-data-handling",
+          "understand/limitations"
+        ]
+      },
+      {
+        "group": "Operator Guides",
+        "pages": [
+          "guides/using-chat",
+          "guides/chat-config",
+          "guides/engagement-ledger",
+          "guides/bloodhound",
+          "guides/mcp-servers",
+          "guides/custom-tls",
+          "guides/findings-watcher",
+          "guides/troubleshooting"
+        ]
+      },
+      {
+        "group": "Configuration",
+        "pages": [
+          "configuration/environment",
+          "configuration/runtime-state",
+          "configuration/observability"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/tools-and-capabilities",
+          "reference/slash-commands",
+          "reference/release-notes"
+        ]
+      }
+    ]
+  }
 }

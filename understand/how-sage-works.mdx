@@ -1,0 +1,97 @@
+---
+title: "How Sage works"
+description: "The observe → model → select → execute → verify loop, the two execution paths, the specialist agent graph, and the engagement ledger that makes effects durable."
+---
+
+Sage turns a question or an objective into Mythic tasks. This page explains the loop it runs, the
+two execution paths that carry it, the agents on the interactive path, and the engagement ledger
+that records what has actually been achieved.
+
+## Two product contracts
+
+Sage has two contracts, and they differ in authority and in what counts as success:
+
+- **Assisted** covers the `conversation` and `supervised` runtime modes. Sage observes the current
+  Mythic operation and answers through Mythic chat. `conversation` is read-only; `supervised` may
+  propose a concrete guarded action, and that exact action runs only after you approve it.
+- **Auto** is the experimental autonomous contract. Sage attempts an explicitly configured
+  objective end to end without per-action approval. Its validation is GOAD-only, which does not
+  establish reliability or generalization elsewhere.
+
+The two contracts share control-plane evidence and Mythic execution plumbing, but not authority or
+acceptance standard. Mode semantics and the approval wall are covered in
+[Authority modes](/understand/authority-modes).
+
+## The loop
+
+When authority permits action, Sage runs an observe / model / select / execute / verify cycle:
+
+1. **Observe** state from Mythic and BloodHound.
+2. **Model** the actions available as typed capabilities, with preconditions, effects, and
+   structured verifiers.
+3. **Select** the next action.
+4. **Execute** it as a real Mythic task on a live payload callback.
+5. **Verify** the effect from real proof, then repair or re-plan, appending every proven effect
+   to the engagement ledger.
+
+LLM judgment is deliberately split from deterministic execution and verification: a model proposes,
+and deterministic machinery and verifiers own correctness. In an objective run, a deterministic
+controller honors the model's intent to act but decides which capability actually runs and how it
+is built. Nothing is recorded on a model's assertion alone.
+
+Sage plans from the graph and callbacks in front of it. Domain names, hosts, accounts, and attack
+paths from its development lab do not live in the product runtime.
+
+## Two execution paths
+
+Requests travel one of two paths, and the difference matters when you read a trace or a result:
+
+| | Agent graph | Objective controller |
+|---|---|---|
+| Used by | Conversation and ordinary supervised chat | Auto mode, and supervised objective runs |
+| What runs | The Supervisor and its specialist agents | The deterministic observe, select, execute, verify loop |
+| Who picks the action | The specialist agent's model | The controller, from the admissible frontier; the model chooses only where the [policy](/configuration/environment#model-configuration) allows |
+
+A result from the objective controller does not measure the agent graph, and the reverse. How each
+path appears in traces is covered in [Observability](/configuration/observability).
+
+## The agent graph
+
+On the agent-graph path, requests route through a **Supervisor** and six specialists:
+
+<Frame caption="The specialist agent graph. The Supervisor routes each request to the specialist that can act on it; the dashed Autonomous Executor is the objective controller, which runs beside the graph rather than inside it.">
+  <img className="block dark:hidden" src="/assets/agent-graph.svg" alt="Diagram of the Sage agent graph: the Supervisor at the top routes requests to Mythic Operator, Mythic Payload, BloodHound, MCP Manager, Generalist, and Sandbox, with the Autonomous Executor drawn in a dashed box beside the Supervisor, outside the graph" />
+  <img className="hidden dark:block" src="/assets/agent-graph-dark.svg" alt="Diagram of the Sage agent graph: the Supervisor at the top routes requests to Mythic Operator, Mythic Payload, BloodHound, MCP Manager, Generalist, and Sandbox, with the Autonomous Executor drawn in a dashed box beside the Supervisor, outside the graph" />
+
+</Frame>
+
+| Agent | Role |
+|---|---|
+| Supervisor | Routes requests and coordinates specialists |
+| Mythic Operator | All Mythic C2 operations and in-memory offensive tradecraft |
+| Mythic Payload | Builds and configures Mythic payloads and C2 profiles |
+| BloodHound | Attack-graph lifecycle: collects, ingests, and analyzes BloodHound facts |
+| MCP Manager | Bridges arbitrary third-party MCP servers |
+| Generalist | General Q&A with no Mythic, TTP, or tool access |
+| Sandbox | Local-only isolated shell/Python scratch computation |
+
+The **Autonomous Executor** in the diagram is the objective controller described above. It is not a
+specialist the Supervisor delegates to: an objective run bypasses Supervisor and worker negotiation
+entirely.
+
+Each agent's system prompt, and the TTP library the agents plan from, are plain files in the Sage
+repository that you can edit. See
+[Tools and capabilities](/reference/tools-and-capabilities#extension-points).
+
+## The engagement ledger
+
+An LLM does not remember your engagement between turns. Sage keeps that memory outside the model,
+in a durable engagement ledger: one JSON file per Mythic operation, holding a table of hops toward
+the objective, each with a status. Every chat in the same operation shares it. You read and edit it
+in chat with `/state`; the operator's side of that is covered in
+[The engagement ledger](/guides/engagement-ledger).
+
+A hop flips to `achieved` only when a verifier confirms the effect from real evidence. Each achieved
+hop carries a proof envelope: the Mythic callback, task, and transaction ids, the terminal task
+status, and the verifier's input and result hashes. A row without a valid envelope is quarantined
+and can never count as proof.

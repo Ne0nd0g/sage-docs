@@ -1,0 +1,69 @@
+---
+title: "Environment and configuration"
+description: "How Sage resolves settings: the first-non-empty chain, the deliberately tracked .env file, and model configuration."
+---
+
+Every native-chat setting (model settings and BloodHound credentials alike) resolves through one
+chain; first non-empty wins:
+
+1. **Mythic channel configuration**: the per-chat fields you fill in when creating a Sage chat.
+2. **Mythic user secrets**: the operator's stored secrets. Preferred home for tokens and API keys.
+3. **Sage process environment**: what Mythic injects into the container, your shell for local
+   development, and anything Sage loads from `Payload_Type/sage/.env` at startup.
+4. **Safe defaults**, where one exists.
+
+## The `.env` file
+
+`Payload_Type/sage/.env` is committed on purpose, which is unusual and deliberate. A
+`.env.example` under Mythic would mean getting a shell inside the container to copy it. Shipping
+the real file means you open it from the **Mythic web UI**, browse the Sage chat container's
+files, edit, save, and restart the container. No shell, no `docker cp`, no `sudo`.
+
+It ships with every line commented out, so cloning Sage sets nothing. Two rules govern how it
+loads:
+
+- **A variable already in the environment wins.** Mythic injects variables into the container;
+  nothing in this file can override them, so a stale entry cannot break your broker connection.
+- **An empty value is ignored.** `KEY=` sets nothing. Uncommenting a line and leaving it blank is
+  identical to leaving it commented.
+
+Use this file for values shared by *every* chat in the container; use chat configuration for
+per-chat values, and Mythic user secrets for anything sensitive.
+
+The file is excluded from the image, so it never bakes in, and your edits survive a rebuild.
+
+If you contribute to Sage from a source checkout, your local edits to this tracked file appear in
+`git status`. Keep them out of diffs with
+`git update-index --skip-worktree Payload_Type/sage/.env` (per clone; undo with
+`--no-skip-worktree`).
+
+## Model configuration
+
+| Setting | Purpose |
+|---|---|
+| `provider` | `openai` (default), `bedrock`, `anthropic`, or `ollama` |
+| `model` | Provider model identifier |
+| `API_ENDPOINT` | Optional endpoint override: point `openai` at any OpenAI-compatible server |
+| `API_KEY` | Provider API key when required |
+| `mode` | `conversation` (default), `supervised`, or `auto` |
+| `autonomous_solve` | Enable objective-led controller execution; supervised still approves each guarded action |
+| `policy_mode` | `hybrid` (default), `symbolic`, or `llm` capability selection |
+| `max_steps` | Model-step ceiling; unset defaults to `200`, `0` means unlimited |
+
+**Providers.** The four above are the tested set. Sage builds the model through LangChain's
+`init_chat_model`, so other providers may work but are unverified. Never infer the effective
+backend from the model name alone; record the provider and route.
+
+**OpenAI-compatible endpoints.** Selecting `provider: openai` does not tie you to OpenAI. It
+speaks the OpenAI API standard, so `API_ENDPOINT` can point at any compatible server: a
+self-hosted model, an internal gateway, or a proxy such as LiteLLM.
+
+**Policy.** `policy_mode` controls how the next capability is chosen in objective-led runs.
+`hybrid` (default) has deterministic code constrain admissible actions and lets the model pick
+among them. `symbolic` is a deterministic, model-free baseline for reproducible debugging. `llm`
+gives the model the full catalog: most latitude, weakest guardrails.
+
+**Step budget.** `max_steps` bounds model steps per run. The autonomous controller independently
+enforces hard stop-losses (a cycle cap, a wall clock, a token budget, and a no-progress
+loop-breaker), each tunable through its `SAGE_CONTROLLER_MAX_CYCLES`,
+`SAGE_CONTROLLER_WALL_S`, and `SAGE_CONTROLLER_TOKEN_BUDGET` variables.

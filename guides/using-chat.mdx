@@ -1,0 +1,80 @@
+---
+title: "Using Sage in chat"
+description: "Working with a Sage chat channel: choosing a mode, approving guarded actions, and stopping a running agent."
+---
+
+Every Sage session is created through Mythic's **New AI Chat** dialog. Channel creation and the
+bot-token decision are covered in [Chat channel configuration](/guides/chat-config); this page is
+the day-to-day operating manual. Mythic renders
+Sage output as markdown, and shows each tool execution as an updating, collapsible card.
+
+## Pick a mode
+
+Set `mode` when you create the channel, or switch it live with `/mode` (no argument reports the
+current mode). Start in `conversation`, which is read-only; move to `supervised` when you want
+Sage to propose actions you approve one at a time; use `auto` only for a prepared, scoped objective
+in a lab. What each mode permits is defined in [Authority modes](/understand/authority-modes).
+
+## Reading the chips
+
+Each Sage channel shows a row of status chips above the transcript. They report the channel's
+live configuration and connection state without a model call:
+
+| Chip | What it tells you |
+|---|---|
+| Provider, Model | Which model provider and model this channel uses. |
+| Max Steps | The global cap on model steps for a run (default 200, `0` means unlimited). It halts a runaway loop. |
+| Agent | The specialist currently executing your request, or `Idle`. |
+| Policy | How Sage selects its next move. `hybrid` (the default) asks the model to choose only at real branches of an otherwise deterministic plan; `symbolic` always takes the first admissible action and cannot interpret Respond guidance; `llm` asks the model on every nonempty frontier. |
+| Mode | The authority mode in force. |
+| Autonomous | Whether deterministic multi-hop solving is forced for this session. |
+| Mythic Tools, MCP Tools | How many tools are loaded, split between native Mythic tools and MCP-provided tools. |
+| BloodHound, MCP Servers | Connection state: `connected` means the graph or external server is reachable. |
+| Rounds | How many rounds the current session has run. |
+
+You set provider, model, mode, policy, Max Steps, and credentials in the channel configuration
+(the pencil icon on the channel header). Prefer storing the API key as a Mythic user secret
+rather than in the channel config, which stores it in plaintext.
+
+<Frame caption="The chip row on a supervised Sage channel (Sage beta, captured July 2026).">
+  ![A row of status chips: Agent Idle, Policy hybrid, Mode supervised, Autonomous off, Mythic Tools 26, BloodHound connected, MCP Servers 2, MCP Tools 32, Rounds 14](/assets/chat-chips.png)
+</Frame>
+
+## Approving guarded actions
+
+In `supervised`, every guarded action (issuing a command, executing a capability, creating a
+payload, adding a credential) pauses as a native Mythic approval card before it runs. Approval is
+**default-deny**: only an explicit Accept lets it through. Read-only tools (`list_*`, `get_*`,
+downloads) never prompt.
+
+When the card shows a direct Mythic task proposal, it displays the deterministically prepared
+command and arguments. If the command schema or selected registered file changes before issuance,
+Sage stops and requires a fresh proposal.
+
+If an accepted task has not returned a confirmed result by the wait deadline, the request ends
+with the exact Mythic task ID and an incomplete-observation notice. The task's outcome is still
+unknown; Sage does not silently re-issue it. A fresh request can inspect that task's output before
+you decide whether to approve another action.
+
+## Stopping a run
+
+Two controls stop work, at different layers:
+
+- **The composer stop button.** While Sage is streaming a response, the composer area shows an
+  "AI response in progress" banner with a stop button to the right of where you type. Use it to
+  cancel the in-flight request.
+- **`/stop`.** Cooperatively stops the agent running on the channel. Use it when Sage is mid-run
+  and you want the agent itself to halt cleanly.
+
+The autonomous controller also enforces its own hard stop-losses (a cycle cap, wall clock, token
+budget, and no-progress loop-breaker), independent of your Max Steps setting.
+
+## What you can see
+
+- `/state` shows the [engagement ledger](/guides/engagement-ledger), the durable record of proven
+  effects shared across chats in the same Mythic operation engagement.
+- `/tools` lists the public Mythic tool inventory without a model call, distinguishing read-only
+  tools from guarded actions.
+- `/report` shows retained identity and membership observations and suggested next checks.
+
+The full command list is in the [Slash commands reference](/reference/slash-commands).

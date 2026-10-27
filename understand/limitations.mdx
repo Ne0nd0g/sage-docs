@@ -1,0 +1,64 @@
+---
+title: "Limitations and validated configuration"
+description: "The configuration Sage's beta was live-validated against, what that does and does not establish, and the known limits."
+---
+
+Sage is beta software. This page states what has been validated, on what, and what remains
+unproven. Read it before you plan an engagement around Sage.
+
+<Warning>
+  **Authorized use only.** An autonomous agent driving a C2 carries real risk of unintended impact
+  on a live network. A validated configuration is evidence that the product executes in that
+  configuration, not a production readiness claim.
+</Warning>
+
+## The validated configuration
+
+The most recent live-validated configuration is the one recorded for `v0.1.0-beta`:
+
+| Component | Validated version |
+|---|---|
+| Mythic | `v4.0.0rc5` (commit `a9add7f1f62f5b2098d1f0eb0306c4b15b8cd916`) |
+| Payload type | Apollo `v0.1.0-rc1` (commit `d44676d9eda540377ce91a6e636dd8788bc86def`) |
+| BloodHound | BloodHound CE 9.5.1 |
+| BloodHound MCP | commit `92a37dd481ce675fe552f14c9957a31dbbcd212e` |
+| Sage host | Linux arm64, Sage in Docker |
+| Model route | `sonnet-4-6` through Sage's `openai` provider via an OpenAI-compatible LiteLLM route |
+
+Sage `v0.2.0` passed its offline suite, repository-boundary guards, and scripted tests of the
+assembled chat path, but the clean-clone Docker qualification and live-range runs were **not**
+repeated for it. The table above is therefore the latest live-validated configuration, not a
+validation of `v0.2.0`. The [release notes](/reference/release-notes) record what changed since.
+
+## What is not validated
+
+Other operating systems and architectures; other Mythic, Apollo, BloodHound CE, or BloodHound MCP
+revisions; other model providers, direct-provider routes, and models; and payload types other than
+Apollo are not validated for this beta. Sage has code paths for several of them (four model
+providers, a generic payload adapter), and those code paths are not evidence that the
+configuration works.
+
+## Known limits
+
+- **Auto mode is experimental.** It has been exercised against the
+  [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab only. That does not establish
+  reliability or generalization on another range or on a production network.
+- **Assisted operation memory is narrowly proven.** The acceptance case covers one shape of
+  finding: credential material in a downloaded file from a completed Apollo `download` task. It
+  does not show that a consultant would have missed the finding, acted on it, or gained value from
+  it.
+- **Erasure is per owner.** An operation-memory wipe removes Sage-derived state for one operation
+  and leaves Mythic records, LangGraph checkpoints, Phoenix traces, provider retention, and Slack
+  records to their own retention policies. See
+  [Runtime state and resets](/configuration/runtime-state#operation-memory-erasure).
+- **Slack delivery is a notice, not a finding.** When configured, Slack receives only a generic
+  change notice; review the finding inside Mythic. See
+  [Background findings watcher](/guides/findings-watcher).
+- **Restarts drop conversational scope.** After a Sage restart, supervised chat does not restore
+  prior scope and evidence. The engagement ledger survives; restate scope in a fresh channel.
+- **macOS Docker Desktop and OrbStack need a database override.** See
+  [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
+
+The authoritative statement of these boundaries is the Sage repository's
+[README](https://github.com/MythicAgents/Sage#limitations) and
+[security and data handling document](https://github.com/MythicAgents/Sage/blob/main/docs/SECURITY_AND_DATA_HANDLING.md).

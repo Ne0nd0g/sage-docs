@@ -1,0 +1,60 @@
+---
+title: "Authority modes"
+description: "What conversation, supervised, and auto mean, and exactly where the approval wall sits."
+---
+
+Every Sage chat channel runs in one of three authority modes. The mode determines what Sage is
+allowed to change, not just what it can see.
+
+## The modes
+
+| Mode | What Sage can do | When to use |
+|---|---|---|
+| `conversation` (default) | Reads Mythic and BloodHound state, queries read-only tools, and answers. Cannot fire a guarded/offensive action. | Asking questions, reviewing the graph, getting tradecraft advice, planning. The safe default. |
+| `supervised` | Proposes guarded actions; each one waits for your approval before it runs. | Interactive engagement work where you want Sage to act but keep a hand on every trigger. |
+| `auto` | Runs the autonomous observe → select → execute → verify loop with no per-action approval. | A prepared, scoped objective with a live callback and an ingested graph. |
+
+The New AI Chat dialog labels these Conversation, Supervised, and Autonomous; Autonomous is `auto`.
+Set the mode when you create the channel, or switch it live with `/mode` (no argument reports the
+current mode).
+
+## Assisted mode is not a fourth mode
+
+The assisted product covers `conversation` and `supervised` together. It is not a separately
+selectable runtime mode: `conversation` observes and answers without guarded activity, and
+`supervised` executes only the exact guarded action you accept.
+
+## Supervised approvals
+
+In supervised mode every **guarded** action (issuing a command, executing a capability, creating
+a payload, adding a credential) pauses as a native Mythic approval request before it runs. This
+is human-in-the-loop (HITL) execution: Sage proposes, and you decide. Approval is default-deny,
+and the card gives you three responses: **Accept** approves exactly the prepared action,
+**Reject** skips it, and **Respond** answers with your own instructions, which Sage incorporates
+before acting again. Read-only tools never prompt.
+
+<Frame caption="A guarded action waiting on your decision in a supervised channel (Sage beta, captured July 2026).">
+  ![A Mythic chat approval card: Sage proposes issuing a task on callback 1, with Accept, Reject, and Respond controls](/assets/hitl-approval-card.png)
+</Frame>
+
+Guarded tools are scope-preflighted: each requires a Mythic bot-token scope (`callback.write`,
+`payload.write`, `credential.write`, `file.write`), and a tool whose scope your channel token
+lacks is disabled up front rather than failing mid-run.
+
+## Objective-led supervised runs
+
+A supervised channel can also pursue a stated objective across turns. Sage still proposes one
+guarded action at a time, and each runs only after you approve its card; objectives and evidence
+survive approvals, rejections, and specialist handbacks. When BloodHound has data and the request
+is about an attack path, Sage queries the graph for a path to the objective before tasking.
+Turning on **Autonomous Solve** in the channel configuration forces this deterministic multi-hop
+solving for the session; completion still requires objective evidence. See
+[Chat channel configuration](/guides/chat-config).
+
+## Auto is experimental and GOAD-validated only
+
+Auto pursues an explicitly bound objective without approval of each action. Its validation is the
+[GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab environment only. That does not establish
+reliability or generality for other environments, and it is not a production endorsement. Sage
+plans from the graph and callbacks in front of it, not from benchmark-specific strategies baked
+into the product. Treat auto as a lab capability until a release says otherwise.

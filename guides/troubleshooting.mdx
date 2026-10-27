@@ -1,0 +1,79 @@
+---
+title: "Troubleshooting"
+description: "Symptoms you may hit while installing and running Sage, what each one means, and where the fix is documented."
+---
+
+Each entry starts from what you see, explains the cause, and links to the page that owns the fix.
+Check the Sage container log first: Sage names missing settings and failing paths there rather than
+failing silently.
+
+## `unable to open database file` at startup
+
+Sage's SQLite databases sit on a filesystem that does not support SQLite locking. This happens
+when Mythic runs under Docker Desktop or OrbStack on macOS, where the bind-mounted service
+directory goes through a file-sharing layer. Move the databases inside the container with two
+`.env` lines: see [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
+
+## Autonomous solves are refused, or BloodHound shows as not connected
+
+The BloodHound MCP connection was never established. The container log shows a `WARNING` that
+starts `BloodHound auto-connect (chat): BloodHound MCP connect not attempted` and names the
+credentials that are missing, never their values. Ordinary conversation and supervised chats keep
+working; autonomous solves fail closed because they cannot plan without the graph. Set the
+credentials and run `/bloodhound`: see
+[When BloodHound is not connected](/guides/bloodhound#when-bloodhound-is-not-connected).
+
+A bare `McpError: Connection closed` with no explanation means the Sage build predates that
+diagnostic. Update Sage.
+
+## `/mcp connect` is refused before it connects
+
+The connect request has no `sage_execution_class`, so it defaults to `unclassified` and is
+refused. Add `"sage_execution_class":"non_target_control_plane"` to the request. See
+[Connecting MCP servers](/guides/mcp-servers).
+
+## An MCP tool always asks for approval, or is denied in conversation
+
+MCP tools default to guarded. Classify read-only tools in `mcp_tool_policy.json`, and run
+`/mcp policy` to confirm the effective classification. See
+[Connecting MCP servers](/guides/mcp-servers).
+
+## A guarded tool is missing or disabled
+
+The channel's bot token lacks the Mythic scope that tool requires (`callback.write`,
+`payload.write`, `credential.write`, or `file.write`), so Sage disables the tool up front. Add the
+scope to the bot token. See [Scope preflight](/reference/tools-and-capabilities#scope-preflight).
+
+## An approved task ended without a confirmed result
+
+The task did not return a result before the wait deadline. Sage ends the request with the exact
+Mythic task ID and an incomplete-observation notice, and does not re-issue the task. Its outcome is
+unknown: inspect that task's output in a fresh request before approving another action. See
+[Approving guarded actions](/guides/using-chat#approving-guarded-actions).
+
+## Mythic shows a request as complete, but Sage stopped it
+
+Mythic records only `complete`, `error`, and `cancelled` as a request's status, so a request that
+Sage stopped on its own or that ended blocked can still show as `complete`. The final message
+states how the request ended. Builds after `v0.2.0` also record it as `turn_outcome` in the final
+message's metadata.
+
+## Sage lost the conversation after a restart
+
+This is expected. After a Sage restart, supervised chat does not restore prior conversational scope
+and evidence. The engagement ledger, `/state`, and `/report` are still available. Start a fresh
+channel and restate scope and evidence. See
+[What a restart does to your chats](/configuration/runtime-state#what-a-restart-does-to-your-chats).
+
+## A reinstall fails on root-owned files
+
+Sage `v0.2.0` writes some runtime state into the service directory as root, which can block a later
+`mythic-cli install` by a non-root user. Archive that state with `sudo` before reinstalling. Later
+builds run as the service directory's owner and hand the files back on first start. See
+[Clean resets](/configuration/runtime-state#clean-resets).
+
+## A trace has no model spans
+
+Not necessarily a broken trace. In objective runs the policy can resolve every decision
+deterministically, and the run then legitimately contains zero model spans. See
+[Observability](/configuration/observability).

@@ -1,0 +1,80 @@
+---
+title: "Quickstart"
+description: "Install Sage into a running Mythic server and hold your first conversation."
+---
+
+This page takes you from a running Mythic v4 install to your first Sage conversation.
+
+<Steps>
+  <Step title="Check the requirements">
+    Sage is a native chat container, which only exists in Mythic v4. The beta-qualified target is
+    **Mythic `v4.0.0rc5`**. Earlier Mythic versions have no native chat support, and other Mythic
+    v4 revisions are unvalidated for this beta. Model-provider credentials or an OpenAI-compatible
+    endpoint are required before your first conversation.
+  </Step>
+  <Step title="Install Sage">
+    From your Mythic directory, install Sage the same way as any agent:
+
+    ```bash
+    sudo ./mythic-cli install github https://github.com/MythicAgents/sage
+    ```
+
+    The installer pulls the published container image named in `config.json` instead of building
+    one. To build from a local checkout instead, run
+    `sudo ./mythic-cli config set sage_use_build_context true`, then `sudo ./mythic-cli build sage`.
+
+    <Warning>
+      A reinstall replaces the whole `InstalledServices/sage/` directory, including the SQLite
+      databases, the engagement ledger, and trace history in it. Archive them first if you need
+      the history. See [Runtime state and resets](/configuration/runtime-state).
+    </Warning>
+  </Step>
+  <Step title="Create a Sage chat channel">
+    After the container registers, create a Mythic chat channel using the `Sage` model. Set the
+    channel `mode` here, or switch it at any time with `/mode`. Start with `conversation`: it is
+    read-only and the safe default.
+
+    Give the channel an operation bot's API token rather than your own, so Mythic attributes
+    Sage's actions to the bot. The token needs `apitoken.write` and `chat-ai.write`, plus the
+    write scopes for any guarded tools you want available. The scopes and every other field in
+    the dialog are covered in [Chat channel configuration](/guides/chat-config).
+  </Step>
+  <Step title="Configure the model provider">
+    Fill in provider, model, and credentials in the channel configuration, or store credentials as
+    Mythic user secrets. See [Environment and configuration](/configuration/environment) for how
+    settings resolve.
+  </Step>
+  <Step title="Start the conversation">
+    Ask a scoped question about your operation in chat: which callbacks exist, what the credential
+    store holds, what the BloodHound graph looks like. Mythic renders Sage output as markdown, with
+    each tool execution shown as an updating, collapsible card.
+  </Step>
+  <Step title="Confirm it works">
+    Run `/tools` in the channel. It answers without a model call, so a tool list proves the
+    container and channel are working before provider credentials are involved; it does not yet
+    prove the token's scopes. Ask your first question, then check the [status chips](/guides/using-chat#reading-the-chips) above the transcript:
+    they show the provider, model, and mode the channel actually resolved. If a step fails, see
+    [Troubleshooting](/guides/troubleshooting).
+  </Step>
+</Steps>
+
+## macOS note
+
+If you run Mythic via Docker Desktop or OrbStack on macOS, Sage's SQLite databases sit on a
+file-sharing layer that does not support SQLite locking, and Sage will report `unable to open
+database file`. Move the databases inside the container with two `.env` lines. See
+[Runtime state and clean resets](/configuration/runtime-state#sqlite-on-macos).
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Chat channel configuration" icon="sliders" href="/guides/chat-config">
+    Every field in the New AI Chat dialog, and where credentials resolve.
+  </Card>
+  <Card title="Using Sage in chat" icon="comments" href="/guides/using-chat">
+    Modes, approvals, and slash commands.
+  </Card>
+  <Card title="BloodHound" icon="magnifying-glass-chart" href="/guides/bloodhound">
+    Connect the graph that Sage observes and plans against.
+  </Card>
+</CardGroup>

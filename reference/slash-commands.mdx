@@ -1,0 +1,47 @@
+---
+title: "Slash commands"
+description: "Every command available in a Sage chat channel."
+---
+
+All commands run inside a Mythic chat channel using the `Sage` model (or `Sage Watcher`, where
+noted).
+
+| Command | What it does |
+|---|---|
+| `/state` | Show the [engagement ledger](/guides/engagement-ledger), the durable hop table of proven effects shared by chats in the current Mythic operation engagement |
+| `/state objective <text>` | Set the engagement objective |
+| `/state reconcile [task_id] [apply]` | Import verified effects and credentials from completed Mythic tasks (**dry-run unless `apply` is given**, because task output is attacker-influenceable) |
+| `/state set <row> <status>` · `/state remove <row>` · `/state wipe` | Edit or clear ledger rows (you cannot hand-promote a row to `achieved`; that needs a real proof envelope) |
+| `/mode` | Show the channel's current mode |
+| `/mode conversation\|supervised\|auto` | Switch the channel's mode |
+| `/list` | List active Sage chat sessions |
+| `/tools` | List Sage's public Mythic tool functions, descriptions, and access requirements: a deterministic inventory, no model call |
+| `/report [identity]` | Show retained identity/membership observations shared across assisted chats in this operation engagement, unknown access prerequisites, and next checks: one bounded check, no new task |
+| `/stop` | Cooperatively stop the running agent on this channel |
+| `/bloodhound [force] [dir]` | Connect, report, or rebind the BloodHound MCP; see [BloodHound](/guides/bloodhound) |
+| `/mcp <list\|tools\|call\|connect\|disconnect\|policy>` | Manage MCP servers; see [Connecting MCP servers](/guides/mcp-servers) |
+| `/sandbox [shell\|python] <code>` | Run an isolated local snippet (requires the `callback.write` scope) |
+
+## Watcher commands
+
+Available with the separate `Sage Watcher` model; see the
+[findings watcher](/guides/findings-watcher):
+
+| Command | What it does |
+|---|---|
+| `/watcher apply` | Claim the operation's sole Watcher owner generation (from the locked `Sage Watcher` channel) |
+| `/watcher status` | Inspect the redacted owner, generation, route sources, cadence, and health |
+| `/watcher scan`, `/watcher pause`, `/watcher resume`, `/watcher interval` | Owner-only scheduler controls |
+
+## Notes
+
+- `#sage-findings` is a normal Mythic channel, not a command: the Watcher posts full finding
+  updates there, and `/findings` (aliased by the legacy `/finding` spelling) shows the same
+  canonical view plus watcher health from either model. The bare word `findings` in conversation
+  is an ordinary prompt with no special behavior.
+- `/state` is available in conversation, supervised, and auto modes. Its ledger is shared across
+  chats in the same operation engagement and persists once written. A new engagement can show an
+  empty ledger: viewing operation details or callbacks does not record an achieved effect, and
+  reading `/state` alone does not create a ledger file.
+- `/tools` and simple questions such as *"list your tools"* use the same deterministic inventory
+  without a model call. Before a session is initialized, live token availability is unverified.

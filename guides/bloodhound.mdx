@@ -1,0 +1,76 @@
+---
+title: "BloodHound"
+description: "Connect BloodHound CE to Sage: the graph Sage observes, reasons over, and plans against."
+---
+
+Sage's graph analysis is backed by the
+[BloodHound MCP server](https://github.com/mwnickerson/bloodhound_mcp), which Sage runs as a
+subprocess and connects to at startup. BloodHound is a pre-wired, dedicated MCP server with its
+own agent; to attach any *other* MCP server, see [Connecting MCP servers](/guides/mcp-servers).
+
+## Point Sage at the MCP server
+
+Set the MCP checkout directory before starting Sage. The container image bakes its own default
+(`ENV SAGE_BLOODHOUND_MCP_DIR=/opt/bloodhound_mcp`), so under Mythic you can leave this commented
+unless you are pointing at your own checkout. For local development, uncomment in
+`Payload_Type/sage/.env`:
+
+```
+SAGE_BLOODHOUND_MCP_DIR=/path/to/bloodhound_mcp
+```
+
+## Provide credentials
+
+The MCP server needs to reach your BloodHound CE instance. Credentials resolve through the
+standard load order, so there are two places to set them without a shell:
+
+1. **Mythic chat configuration** when you create the chat (per-chat, the same place your model
+   API key lives). Mythic **user secrets** work too and keep the token out of plaintext config.
+2. **Sage's own `.env`** (`InstalledServices/sage/.env` under Mythic), edited from the Mythic web
+   UI and shared by every chat in that container.
+
+| Setting | Purpose |
+|---|---|
+| `BLOODHOUND_URL` | Where BloodHound CE is, as one address: `scheme://host:port`. |
+| `BLOODHOUND_TOKEN_ID` | API token ID |
+| `BLOODHOUND_TOKEN_KEY` | API token key |
+
+## The connection is process-global: configure once
+
+The first chat that connects successfully establishes the BloodHound connection for the whole
+container; every later chat reuses it. **Fill these fields in once and leave them blank in
+subsequent chats.**
+
+- A failed connect establishes nothing; the next chat tries again from scratch. You are not
+  stuck with a bad connection.
+- Plain `/bloodhound` is idempotent: it reports an existing connection and is a safe way to ask
+  whether BloodHound is connected.
+- `/bloodhound force` rebinds an already-connected container to the current chat's resolved
+  credentials without a restart. The rebind disconnects before connecting, so if the new settings
+  are wrong you are left with no connection rather than the old one. `/bloodhound` will connect
+  again once you have fixed the configuration.
+
+## When BloodHound is not connected
+
+**Sage still works.** A missing optional dependency degrades a capability, not the product:
+
+- Ordinary conversation and supervised chats answer normally with no BloodHound credentials.
+- **Autonomous solves fail closed, on purpose.** A solve reasons over the attack graph, so running
+  one without the graph would mean acting blind. The request is refused with a message that names
+  BloodHound and repeats the setup steps.
+- Nothing is retried pointlessly: when required credentials resolve nowhere, Sage does not spawn
+  an MCP server it knows will exit. Fix the configuration and the next request tries again.
+
+In the Sage container log you will see, at `WARNING`:
+
+```
+BloodHound auto-connect (chat): BloodHound MCP connect not attempted: required credentials are unset,
+so the server would exit during startup.
+
+Credentials Sage resolved for this attempt: NONE
+Missing (required): BLOODHOUND_URL, BLOODHOUND_TOKEN_ID, BLOODHOUND_TOKEN_KEY
+```
+
+It names which credentials arrived and which did not, never their values. A bare
+`McpError: Connection closed` with no explanation means you are on a build from before this was
+fixed.

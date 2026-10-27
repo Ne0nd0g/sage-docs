@@ -1,0 +1,40 @@
+---
+title: "Security and data handling"
+description: "The control-plane boundary, evidence rules, and what Sage does with your operation's data."
+---
+
+This page summarizes the boundary documented in the Sage repository's
+[`docs/SECURITY_AND_DATA_HANDLING.md`](https://github.com/MythicAgents/Sage/blob/main/docs/SECURITY_AND_DATA_HANDLING.md).
+When this page and the repository document disagree, the repository document is authoritative.
+
+## The control-plane boundary
+
+- Sage may use Mythic and BloodHound control-plane data: callbacks, tasks, files, credentials,
+  graph facts.
+- All target-facing interaction executes as Mythic tasks on live payload callbacks. Sage never
+  connects directly to target LDAP, SMB, Kerberos, WinRM, RPC, HTTP, or equivalent services, and
+  Sage-local attack artifacts are not compromise proof.
+
+## Evidence rules
+
+- Runtime effects and objective completion require Mythic task output or artifacts, Mythic
+  credential-store state, or BloodHound facts derived from payload-collected artifacts.
+- Self-reported success is not proof. The [engagement ledger](/understand/how-sage-works#the-engagement-ledger)
+  records a hop as achieved only with a valid proof envelope.
+
+## Data handling
+
+- Do not put secrets in scripts, skills, logs, or public artifacts. `read_credentials` can place
+  raw secrets in model context and traces; use it deliberately.
+- Retained identity and membership observations are shared across assisted chats in the same
+  Mythic operation engagement and persist across Sage restarts. `/report` shows what has been
+  retained; a reported identity or host membership does not prove current authentication or access.
+- The optional Slack hook emits only a fixed generic change notice: never operation, finding,
+  host, user, domain, credential, task, or file values. Full findings stay in native Mythic chat
+  inside your trusted deployment.
+
+<Warning>
+  **Authorized use only.** These sections describe how Sage is built to behave, not a permission
+  to operate Sage against anything. Every action Sage takes must fall inside activity you are
+  explicitly authorized to perform.
+</Warning>

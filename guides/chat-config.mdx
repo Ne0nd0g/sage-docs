@@ -1,0 +1,117 @@
+---
+title: "Chat channel configuration"
+description: "Creating a Sage chat channel: what each field in the New AI Chat dialog does, and how to keep credentials out of plaintext."
+---
+
+You create every Sage session through Mythic's **New AI Chat** dialog, choosing the `Sage` model.
+This page walks the dialog's fields and the decisions in them. The authority-mode semantics
+behind the Mode field are covered in [Authority modes](/understand/authority-modes); how values
+resolve against secrets and environment variables is covered in
+[Environment and configuration](/configuration/environment).
+
+<Note>
+  Create a dedicated Mythic bot API token for the chat channel instead of pointing it at your
+  operator account. Mythic v4 issues bot tokens, and using one keeps attribution clear: tasks
+  Sage issues are visibly the bot's, not yours. The channel token needs `apitoken.write` (to
+  generate the scoped tokens the channel tools use) and `chat-ai.write` (to stream responses back
+  to the channel). Guarded tools additionally need `callback.write`, `payload.write`,
+  `credential.write`, or `file.write`; a tool whose scope the token lacks is disabled up front.
+  See [Scope preflight](/reference/tools-and-capabilities#scope-preflight).
+</Note>
+
+<Frame caption="The AI Chat API Token panel at the bottom of the dialog. Choose your operator account or the operation bot as Owner, then pick or create a token that carries both required scopes. The bot name is redacted.">
+  ![The AI Chat API Token panel listing the apitoken.write and chat-ai.write scopes, with Owner and API Token selectors](/assets/new-ai-chat/api-token.png)
+</Frame>
+
+## Channel fields
+
+The top of the dialog holds Mythic's own chat fields, not Sage's: a **Name**, a **Description**,
+and the **Model** selector where you pick `Sage`. A `Sage Watcher` model is also listed; that is
+the separate findings-watcher profile documented in
+[Background findings watcher](/guides/findings-watcher), not a second assistant.
+
+<Frame caption="The top of the New AI Chat dialog, with the sage container and the Sage model selected.">
+  ![The New AI Chat dialog's Type, Name, Description, Container, and Model fields](/assets/new-ai-chat/channel-fields.png)
+</Frame>
+
+## Advanced configuration
+
+Everything below is Sage's own configuration, declared in
+`Payload_Type/sage/sage_chat/models.py`. Nothing is mandatory: a fresh channel with no fields set
+runs as a read-only conversation using the provider defaults.
+
+<Accordion title="Model selection">
+  | Field | What it does |
+  |---|---|
+  | Provider | Which model provider to use: OpenAI (default), AWS Bedrock, Anthropic, or Ollama. Bedrock uses the AWS quad below; the others use API Key / API Endpoint. |
+  | Model | The model name for that provider, for example `gpt-5.5-cyber-preview` or `claude-sonnet-5`. |
+  | Reasoning Effort | Optional OpenAI-compatible reasoning setting, from None up to Maximum. Blank uses `SAGE_REASONING_EFFORT` from the environment if set, otherwise the provider default. |
+  | Provider Retry Policy | Optional OpenAI-compatible retry preset. Off uses the provider SDK defaults; Transient v1 retries confirmed temporary 429 and 503 responses with bounded waits. Blank uses `SAGE_PROVIDER_RETRY_POLICY` from the environment if set. |
+
+  <Frame>
+    ![The AI Configuration fields: Provider, Model, Reasoning Effort, and Provider Retry Policy](/assets/new-ai-chat/model-selection.png)
+  </Frame>
+</Accordion>
+
+<Accordion title="Authority">
+  | Field | What it does |
+  |---|---|
+  | Mode | Conversation (default) is read/response-only and cannot execute external tools. Supervised permits model-proposed guarded work only after exact operator approval. Autonomous runs the execution kernel unattended. |
+  | Autonomous Solve | Force deterministic multi-hop solving for this session. In supervised mode, controller moves still require approval and completion requires objective evidence. Off keeps supervised requests on the scoped graph workflow. Mode=Autonomous always enables objective solving. |
+  | Policy | Hybrid (default) has the model select from the complete deterministic admissible frontier at real branches or after supervised Respond guidance. Symbolic keeps deterministic first-admissible selection and cannot interpret Respond guidance. LLM calls the model on every nonempty frontier. |
+  | Max Steps | Global cap on model steps for this run; halts a runaway loop. Defaults to 200; 0 means unlimited. |
+
+  <Frame>
+    ![The Mode, Autonomous Solve, Policy, and Max Steps fields at their defaults: Conversation, off, Hybrid, and 200](/assets/new-ai-chat/authority.png)
+  </Frame>
+</Accordion>
+
+<Accordion title="Behavior">
+  | Field | What it does |
+  |---|---|
+  | System Prompt Override | Optional override for Sage's default operator-assistant system prompt. For the per-agent prompt files, see [Tools and capabilities](/reference/tools-and-capabilities#extension-points). |
+</Accordion>
+
+<Accordion title="Credentials">
+  These resolve field first, then user secret, then container environment. Leaving them blank and
+  storing them as Mythic user secrets keeps them out of plaintext channel config; see
+  [Environment and configuration](/configuration/environment) for the full chain.
+
+  | Field | What it does |
+  |---|---|
+  | API Endpoint | The endpoint for the selected provider (non-Bedrock). |
+  | API Key | The key for the selected provider. Stored in plaintext channel config if entered here; to keep it hidden, leave blank and set the `API_KEY` user secret instead. |
+  | AWS_ACCESS_KEY_ID | Bedrock access key ID. |
+  | AWS_SECRET_ACCESS_KEY | Bedrock secret access key. |
+  | AWS_SESSION_TOKEN | Bedrock session token. |
+  | AWS_DEFAULT_REGION | Bedrock region. |
+
+  <Frame>
+    ![The credential fields: API Endpoint, API Key, and the four AWS Bedrock fields, all left blank](/assets/new-ai-chat/credentials.png)
+  </Frame>
+</Accordion>
+
+<Accordion title="BloodHound">
+  | Field | What it does |
+  |---|---|
+  | BloodHound URL | Where BloodHound CE is, as one address: `http://host:port`. Must be an address only: a path, query, fragment, or embedded credentials are refused rather than trimmed, so pasting a browser URL like `http://host:8080/ui/login` tells you what to remove. |
+  | BloodHound Token ID | BloodHound CE API token ID. Stored in plaintext channel config if entered here; use the `BLOODHOUND_TOKEN_ID` user secret to keep it hidden. |
+  | BloodHound Token Key | BloodHound CE API token key. Same plaintext caveat as the token ID. |
+
+  These are resolved in the chat config because the BloodHound MCP server is launched as a
+  subprocess that receives only a fixed safe subset of Sage's environment, so a `BLOODHOUND_*`
+  variable set on the container never reaches it by inheritance. Leave every field blank to keep
+  the server's own directory `.env` as the source of truth. Connection details are in
+  [BloodHound](/guides/bloodhound).
+
+  <Frame>
+    ![The BloodHound URL, Token ID, and Token Key fields, all left blank](/assets/new-ai-chat/bloodhound.png)
+  </Frame>
+</Accordion>
+
+## Watching a channel
+
+The chip row above the transcript reports the live configuration and connection state: provider,
+model, mode, policy, Max Steps, tool counts, BloodHound and MCP connectivity, and the round count.
+You can set the same fields mid-engagement with the pencil icon on the channel header; see
+[Reading the chips](/guides/using-chat#reading-the-chips).

@@ -1,9 +1,76 @@
 ---
 title: "Sage"
-description: "An AI-driven agent for the Mythic command and control framework."
+description: "Sage is an AI operator that lives inside your Mythic C2: it reads your live operation, reasons like an analyst over the BloodHound attack graph, and drives real Mythic tasks."
 ---
 
-Sage is a Mythic agent that applies AI to offensive-security tradecraft.
+You work with Sage in a [Mythic](https://github.com/its-a-feature/Mythic) chat channel. It reads
+the callbacks, tasks, credentials, and files in your operation alongside your BloodHound graph.
+Ask it a scoped question about the engagement and get an answer grounded in that data, or hand it
+an objective and let it plan and drive the path itself.
 
-This documentation site is being built. Pages will be seeded from the Sage
-repository's existing `docs/` tree.
+<Warning>
+  **Authorized use only, and still maturing.** Use Sage only for activity you are explicitly
+  authorized to perform. Sage is in beta: an autonomous agent driving a C2 carries real risk of
+  unintended impact on a live network. Weigh production use very carefully, and prefer labs and
+  authorized engagements until Sage has matured.
+
+  Auto mode is the sharp edge of that risk, and it is not the only way to run Sage. Supervised
+  mode is human-in-the-loop: Sage proposes, and every guarded action waits for your explicit
+  approval before it runs. Conversation mode is read-only. Start there.
+</Warning>
+
+## Scope and boundaries
+
+Sage installs into a Mythic server the same way a payload type or C2 profile does, and it has no
+function outside one. It runs on the control plane and operates through your Mythic payloads.
+It is not an implant, and it does not create a Sage payload callback. Sage is a native Mythic
+**chat container**, so it requires Mythic v4: chat containers do not exist before v4. The
+beta-qualified target is **Mythic `v4.0.0rc5`**; newer v4 builds may work but are outside the
+validated matrix. See [Limitations and validated configuration](/understand/limitations).
+
+Three boundaries define the product:
+
+- **Target-facing activity always executes through a live Mythic payload callback.** Sage may
+  query Mythic and BloodHound control-plane data, but it never connects directly to target LDAP,
+  SMB, Kerberos, WinRM, RPC, HTTP, or similar services.
+- **Sage-local attack artifacts are not proof.** Runtime effects and objective completion require
+  Mythic task output and artifacts, Mythic credential-store state, or BloodHound facts derived
+  from payload-collected artifacts. Self-reported success is not recorded.
+- **Proof is enforced, not asserted.** A durable [engagement
+  ledger](/understand/how-sage-works#the-engagement-ledger) records each achieved effect with a
+  proof envelope: the Mythic callback, task, and transaction ids, plus verifier result hashes. A
+  row without a valid envelope can never count as achieved.
+
+## Two ways to work
+
+<AccordionGroup>
+  <Accordion title="Assisted: conversation and supervised">
+    Ask scoped questions about the operation in `conversation` mode (read-only, the safe
+    default). Switch to `supervised` to let Sage propose guarded actions; every one of them waits
+    for your explicit approval, default-deny, before it runs.
+  </Accordion>
+  <Accordion title="Auto: autonomous objectives">
+    Give Sage a scoped objective and it runs the observe → select → execute → verify loop without
+    per-action approval. This is experimental: its current validation is the
+    [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab environment only, and it does not
+    establish reliability or generalization elsewhere.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install Sage into Mythic and run your first conversation.
+  </Card>
+  <Card title="How Sage works" icon="sitemap" href="/understand/how-sage-works">
+    The observe → model → select → execute → verify loop, the specialist agent graph, and the
+    engagement ledger.
+  </Card>
+  <Card title="Authority modes" icon="scale-balanced" href="/understand/authority-modes">
+    What `conversation`, `supervised`, and `auto` mean, and exactly where the approval wall sits.
+  </Card>
+  <Card title="Security and data handling" icon="shield-halved" href="/understand/security-and-data-handling">
+    The control-plane boundary, evidence rules, and what Sage does with your data.
+  </Card>
+</CardGroup>

@@ -1,0 +1,64 @@
+---
+title: "Connecting MCP servers"
+description: "Attach any third-party MCP server to Sage, with an execution class, a tool policy, and the control-plane rule."
+---
+
+BloodHound is pre-wired as Sage's graph server, but Sage can drive **any** MCP server, not just
+BloodHound. Connect one from chat:
+
+```json
+/mcp connect {"name":"my-server","type":"stdio","command":"uv","args":["--directory","/path","run","main.py"],"sage_execution_class":"non_target_control_plane","read_only_tools":["search","fetch"]}
+```
+
+Transports: `stdio` (default), `sse`, and `http` / `streamable_http`. Remote servers take a
+`url` and optional `headers`. Set `"ssl_verify":false` only when you accept an unverified
+connection; to trust a private CA instead, see [Custom TLS certificates](/guides/custom-tls).
+
+<Frame caption="Connecting a Nemesis MCP server over HTTP, then calling one of its read-only tools with /mcp call. The authorization header value is redacted.">
+  <img src="/assets/screens/nemesis-mcp.png" alt="Sage chat showing an /mcp connect command for an HTTP server named Nemesis with an execution class and a read-only tool list, the Connected MCP server confirmation, and an /mcp call to the search-files tool returning a JSON result" />
+</Frame>
+
+## Two rules that will otherwise trip you up
+
+- **`sage_execution_class` is required.** A connect with no execution class defaults to
+  `unclassified` and is refused before it connects. To attach a third-party server set
+  `"sage_execution_class":"non_target_control_plane"`. This is deliberate: MCP servers are
+  **control-plane only**: Sage never reaches a target through one.
+- **MCP tools default to guarded.** An MCP tool not explicitly classified is treated as guarded:
+  it requires approval in supervised mode and is denied in conversation mode.
+
+Classify tools with the `mcp_tool_policy.json` file in the Sage payload root
+(`Payload_Type/sage/`); set `SAGE_MCP_TOOL_POLICY` to override the file path. The policy file
+classifies tools as `read_only` (freely available) or `guarded` (approval-gated in supervised,
+denied in conversation):
+
+```json
+{
+  "default": "guarded",
+  "servers": {
+    "my-server": {
+      "default": "guarded",
+      "tools": {
+        "search": "read_only",
+        "fetch": "read_only"
+      }
+    }
+  }
+}
+```
+
+Lookup order: tool-level override → server default → global default → guarded (hardcoded
+fallback). A missing or malformed file falls back to all-guarded.
+
+## Managing servers
+
+| Command | What it does |
+|---|---|
+| `/mcp list` | Connected servers and tool counts |
+| `/mcp tools [server]` | Tool names |
+| `/mcp call <server> <tool> <json>` | Invoke one allowlisted tool directly (60-second timeout) |
+| `/mcp policy` | Show the effective tool safety classifications |
+| `/mcp disconnect <name>` | Disconnect a server |
+
+For an agent to use a server during a turn, name it in your message (for example, *"using
+my-server, fetch …"*).

@@ -1,0 +1,78 @@
+---
+title: "Runtime state and resets"
+description: "What Sage persists, where, what a restart does to your chats, and how to reset cleanly without losing history."
+---
+
+## What lives where
+
+Under a Mythic install, all of these sit in the Sage service directory,
+`InstalledServices/sage/`:
+
+| Path | Contents | Override |
+|---|---|---|
+| `sage.db` | LangGraph checkpoints, tool cache, channel markers, controller recovery, and operation memory (including retained report observations). Separate APIs on one physical SQLite file, with separate erasure lifecycles. | `SAGE_DATABASE_PATH` |
+| `.phoenix/phoenix.db` | Observability (trace) history. See [Observability](/configuration/observability). | `PHOENIX_WORKING_DIR` |
+| `.sage_engagement/state_<operation>.json` | The [engagement ledger](/guides/engagement-ledger), one JSON file per Mythic operation. | `SAGE_ENGAGEMENT_STATE_DIR` |
+
+All three are retained trajectory data. The `sage.db` and Phoenix default paths are independent of
+the process working directory; the ledger directory is created in the working directory of the Sage
+process, which under Mythic is the service directory.
+
+## SQLite on macOS
+
+If you run Mythic via Docker Desktop or OrbStack on macOS, the service directory that Mythic
+bind-mounts into the Sage container goes through a file-sharing layer that does not support
+SQLite's locking, and Sage reports `unable to open database file`.
+
+Move both databases to a path inside the container. Add these lines to
+`InstalledServices/sage/.env` (from the Mythic UI's container file browser or from your Mythic
+directory), then restart the Sage container:
+
+```bash
+echo 'PHOENIX_WORKING_DIR=/opt/sage_data' | sudo tee -a InstalledServices/sage/.env
+echo 'SAGE_DATABASE_PATH=/opt/sage_data/sage.db' | sudo tee -a InstalledServices/sage/.env
+```
+
+You must set both. Startup creates the directories, checks that `sage.db` can be opened and
+locked, and stops with an error that names the path if it cannot. The databases survive a
+container **restart** but are deleted when the container is **recreated** (by a rebuild or
+reinstall).
+
+## What a restart does to your chats
+
+An active chat channel retains its session across ordinary turns, including pending approvals.
+After a Sage restart, ordinary supervised chat does **not** restore prior conversational scope and
+evidence. The engagement ledger, read-only `/state`, `/report`, and tool discovery remain
+available; start a fresh channel and restate scope and evidence before continuing model work.
+
+## Clean resets
+
+Never delete runtime state to obtain a clean run. Archive it instead, so the history stays
+available. From your Mythic directory, stop Sage, then move the active state aside under a
+timestamp:
+
+```bash
+sudo ./mythic-cli stop sage
+cd InstalledServices/sage
+ts=$(date +%Y%m%dT%H%M%S); mkdir -p archive/$ts
+mv sage.db* .phoenix .sage_engagement archive/$ts/ 2>/dev/null
+cd ../.. && sudo ./mythic-cli start sage
+```
+
+Move `sage.db` together with its `-wal` and `-shm` sidecars (the `sage.db*` glob does this), or
+uncheckpointed writes are lost. If you redirected any path with the overrides above, archive from
+that location instead.
+
+Sage v0.2.0 writes some of this state as root, so the `mv` may need `sudo`. Later builds run the
+container as the owner of the service directory and hand earlier root-owned files back on first
+start.
+
+A reinstall replaces the whole service directory, so archive this state outside
+`InstalledServices/sage/` before running `mythic-cli install` again.
+
+## Operation-memory erasure
+
+An operation-memory wipe removes Sage-derived state for one operation but deliberately leaves
+authoritative Mythic records unchanged. It does not erase separate LangGraph checkpoints, Phoenix
+traces, LiteLLM or provider retention, native Mythic messages, or Slack workspace records; each
+owner must apply its own retention policy.

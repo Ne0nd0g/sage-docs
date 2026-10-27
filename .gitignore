@@ -1,0 +1,24 @@
+# Scratch working files (screenshots under review, staging areas)
+temp/
+
+# Build and dependency artifacts
+node_modules/
+.next/
+.mint/
+dist/
+build/
+
+# Logs and caches
+*.log
+.cache/
+
+# OS noise
+.DS_Store
+
+# Local environment files (secrets belong here, never in git)
+.env
+.env.*
+!.env.example
+
+# Editors
+*.swp

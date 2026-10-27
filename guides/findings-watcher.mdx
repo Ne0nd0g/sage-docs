@@ -1,0 +1,36 @@
+---
+title: "Background findings watcher"
+description: "The Sage Watcher model: a locked, operation-wide watcher that polls Mythic's read streams and posts findings, without touching targets."
+---
+
+Sage exposes a separate `Sage Watcher` model alongside ordinary `Sage`. A Watcher chat is inert
+until you lock the channel and run `/watcher apply` there, which claims the operation's sole
+Watcher generation. It runs one serial, incremental background watcher that polls Mythic's read
+streams; it never issues a payload task or contacts a target.
+
+## Start the watcher
+
+1. Create a chat channel using the `Sage Watcher` model, and lock it.
+2. Run `/watcher apply` in that channel to claim the operation's Watcher.
+3. Run `/watcher status` to confirm the owner, cadence, and health.
+
+The owner channel also holds the scheduler controls (scan, pause, resume, interval). `/findings`
+shows the findings view and watcher health from either model. Every watcher command is listed in
+the [Slash commands reference](/reference/slash-commands#watcher-commands).
+
+## Where findings land
+
+Findings land in the `#sage-findings` Mythic channel. That is a normal Mythic channel, not a
+command: the Watcher posts full finding updates there, and `/findings` shows the same canonical
+view.
+
+Optionally set `SAGE_FINDINGS_SLACK_WEBHOOK_URL`. Slack receives **only** the fixed generic change
+notice: never operation, finding, host, user, domain, credential, task, or file values. Full
+findings stay inside Mythic.
+
+## Watcher configuration
+
+The Watcher's provider, model, credentials, and scan interval are configured on the `Sage Watcher`
+model's own dialog. It has the same shape as the [Sage chat configuration](/guides/chat-config)
+fields, with `SAGE_WATCHER_*` names and a scan cadence from 5 through 86,400 seconds (default 300). See
+[Environment and configuration](/configuration/environment) for how these resolve.

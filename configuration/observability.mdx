@@ -1,0 +1,66 @@
+---
+title: "Observability"
+description: "Traces, token accounting, and telling the two execution paths apart, with the embedded Phoenix UI."
+---
+
+Sage embeds [Arize Phoenix](https://github.com/Arize-ai/phoenix). On startup it launches a local
+Phoenix instance, instruments the LangChain stack through OpenInference, and emits spans from the
+deterministic execution kernel, with no configuration and nothing leaving the host.
+
+Open the Phoenix UI and walk a run span by span: which step ran, what it sent the model, what came
+back, which tools fired, and where a step failed. Token accounting per run and per step catches a
+context blow-up or a runaway loop before it burns your budget.
+
+<Frame caption="A Phoenix trace of one MCP Manager turn: the span tree on the left (middleware, the model call with its token count, and the tool call), and the selected span's input on the right.">
+  <img src="/assets/screens/phoenix-trace.png" alt="Arize Phoenix trace view showing an MCP_Manager chain span with middleware, model, and tools child spans, trace status OK, cost, latency, and the span's input messages" />
+</Frame>
+
+Phoenix listens on port 6006, and Mythic runs installed agent containers with host networking, so
+on the Mythic server the UI is at `http://localhost:6006` by default. Sage does not configure
+Phoenix authentication or its bind address, so Phoenix's own defaults apply. Traces contain prompts
+and tool output; from another machine, reach the UI through an SSH tunnel rather than by exposing
+the port.
+
+## Two execution paths, two span trees
+
+Sage's [two execution paths](/understand/how-sage-works#two-execution-paths) produce different
+traces. Knowing which one you ran is the difference between reading a trace and misreading it.
+
+| | Conversation and ordinary supervised chat | Auto and supervised objective runs |
+|---|---|---|
+| What runs | The agent graph: supervisor, sub-agents, middleware | The controller loop: observe, select, execute, verify |
+| Span tree | `Sage` → `Supervisor` → `model` / `tools` → tool spans | `sage.kernel.episode` → `sage.kernel.cycle` → `sage.kernel.seam.*` → tool spans |
+| Model calls | One span per call, with token counts | One per **policy** call, nested under `seam.policy_select` |
+
+**A run with no LLM spans is not necessarily a broken trace.** The kernel's policy backend can run
+symbolically or hybridly without consulting a model; when it does, the run legitimately contains
+zero model spans. Compare against the run's own `model_calls` in its runtime telemetry rather than
+assuming loss.
+
+Every `seam.policy_select` span carries the decision it produced (disposition, rationale, and
+whether the model responded), so a run that stopped because the model was unreachable says so in
+the trace instead of only in a failed leaf span.
+
+## Working with traces
+
+Traces persist in `.phoenix/phoenix.db`. Copy them WAL-inclusively: copying `phoenix.db` without
+its `-wal` sidecar silently drops everything not yet checkpointed.
+
+If you work from a Sage source checkout, a helper script checks whether a run is traced at all,
+rather than you reading span counts by eye. It is not part of a Mythic install:
+
+```bash
+python3 skills/sage-trace-analysis/scripts/phoenix_verdict.py --latest-episode
+```
+
+It reports `TRACED`, `PARTIAL`, `UNTRACED`, or `EMPTY`, and exits non-zero on anything but
+`TRACED`.
+
+## Known limits
+
+- Kernel spans cover the controller's own steps; a Mythic task issue and its wait are traced as
+  part of the `execute` seam rather than as separate spans.
+- Span attribute values are capped (128 KB), so a very large prompt or tool output is truncated in
+  the trace, not dropped.
+- Set `SAGE_KERNEL_TRACING=0` to disable kernel spans; LangChain instrumentation is unaffected by
+  it.

@@ -1,0 +1,52 @@
+---
+title: "The engagement ledger"
+description: "Durable engagement state: the /state hop ledger, reconciling completed Mythic tasks, and what a proof envelope requires."
+---
+
+An LLM does not remember your operation between turns, so Sage keeps that memory outside the
+model: in the engagement ledger, a durable table of hops toward the objective, shared by all
+chats in the current Mythic operation engagement. The concept and the proof machinery are
+described in [How Sage works](/understand/how-sage-works#the-engagement-ledger); this page is the
+operator's guide to living with it.
+
+## Reading and editing with `/state`
+
+- `/state` shows the ledger: each hop, its status, and the proof behind it.
+- `/state objective <text>` sets the engagement objective.
+- `/state set <row> <status>` and `/state remove <row>` edit rows.
+- `/state wipe` clears the ledger.
+
+The ledger itself is a JSON file (see [Persistence and restarts](#persistence-and-restarts));
+`/state` renders it as a table in chat:
+
+<Frame caption="/state in a Sage channel: the objective, the achieved-hop count, and one row per hop with its effect, status, Mythic task, callback, and evidence. The operation name is redacted.">
+  <img src="/assets/screens/engagement-ledger-state.png" alt="Sage chat reply to /state showing the engagement objective, one achieved hop in a table with columns for hop, effect, status, task, callback, and evidence, and the /state edit commands underneath" />
+</Frame>
+
+You can edit or clear rows freely, but you cannot hand-promote a row to `achieved`: that status
+requires a real proof envelope, so the ledger never records your optimism as fact.
+
+## Importing completed task work
+
+Not every effect starts as a Sage run. `/state reconcile [task_id] [apply]` imports verified
+effects and credentials from completed Mythic tasks into the ledger. It runs as a **dry-run
+unless you pass `apply`**, because task output is attacker-influenceable. A compromised host can
+feed fake state into a task result, and the dry-run default makes you look before it lands in the
+durable record.
+
+## Identity reporting
+
+`/report` shows retained identity and membership observations shared across assisted chats in the
+same operation engagement, unknown access prerequisites, and authored next checks. It uses
+matched task observations Sage has collected; no model call for the report itself.
+
+Two caveats apply: observations may be historical or incomplete, and a reported identity or host
+membership does not prove current authentication or access.
+
+## Persistence and restarts
+
+The ledger persists once written. It is a JSON file per Mythic operation (`state_<operation>.json`)
+in Sage's `.sage_engagement/` directory, separate from the `sage.db` SQLite store, and it survives
+Sage restarts. The ledger survives a restart, but a supervised chat's conversational scope does
+not. See [Runtime state and resets](/configuration/runtime-state) for where state lives, what a
+restart does to your chats, and how to archive or erase it.
