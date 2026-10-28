@@ -38,7 +38,7 @@ page-level line mapping is done during verification, not recorded here.
 | `configuration/environment` | `config.json`, `Payload_Type/sage/dotenv_bootstrap.py`, `Payload_Type/sage/config.py` |
 | `configuration/runtime-state` | `Payload_Type/sage/runtime_db.py`, `Payload_Type/sage/ai/langgraph/engagement_ledger.py`, `Payload_Type/sage/container/`, Mythic CLI (`stop`/`start`) |
 | `configuration/observability` | `skills/phoenix-traces/`, `Payload_Type/sage/container/` |
-| `reference/tools-and-capabilities` | `docs/reference/TOOLS_AND_CAPABILITIES.md`, `Payload_Type/sage/tools/`, `agent_capabilities.json` |
+| `reference/tools-and-capabilities` | `docs/reference/TOOLS_AND_CAPABILITIES.md`, `Payload_Type/sage/tools/`, `Payload_Type/sage/ai/langgraph/capabilities.py` (capability catalog), `Payload_Type/sage/ai/langgraph/mythic_capability_adapter.py` (payload profiles), `Payload_Type/sage/ai/langgraph/mythic_tools.py` (tool safety, scopes, discovery and tasking), `Payload_Type/sage/ai/langgraph/command_parameter_schema.py`, `Payload_Type/sage/ai/langgraph/command_builder.py`, `Payload_Type/sage/ai/comparison_tool_surface.py` (agent-visible tool lists), `Payload_Type/sage/prompts/` (frontmatter tool lists) |
 | `reference/slash-commands` | `Payload_Type/sage/sage_chat/slash.py`, `Payload_Type/sage/prompts/` |
 
 ## What changed since the last full pass
@@ -57,3 +57,29 @@ Pre-launch review (2026-10-26), same mirror commit:
   so it has no source-map row until it returns.
 
 The tree has 20 pages.
+
+Capability list (2026-10-28), `reference/tools-and-capabilities` only:
+
+- Rewrote the page from code, not from `TOOLS_AND_CAPABILITIES.md`, against tag `v0.2.0`; the
+  mapped files are identical between `v0.2.0` and mirror HEAD `fe151bf`.
+- Any-agent section: discovery and tasking path verified in `mythic_tools.py`
+  (`_authenticate_live_command`, `_prepare_supervised_issue_action`, `_validate_command_parameters`),
+  `command_parameter_schema.py`, and `command_builder.resolve_params`. Adapters (Apollo, Merlin)
+  from `mythic_capability_adapter.py`.
+- Tools table: the 32 agent-visible tools are `SHIPPING_MYTHIC_*_TOOL_NAMES` in
+  `Payload_Type/sage/ai/comparison_tool_surface.py` plus `sandbox_exec`, cross-checked against
+  prompt frontmatter. Class from `@tool_safety`, scope from `SCOPE_REQUIREMENTS`. Seven other
+  decorated methods are internal and never handed to an agent.
+- Added the 15 capabilities from `capabilities.py`; `collect-graph` runs SharpHound (model.py).
+- Drop zone: describes TTP-named staging only; folder discovery is planned for a later release.
+- Added "Minimum bot token scopes". Sage side: `SCOPE_REQUIREMENTS` (preflight), `ChatAPITokenProvider`
+  in `mythic-container==0.7.0rc9` (mints with no scopes, so the token inherits the channel token's).
+  Mythic side, at the pinned `v4.0.0rc5` commit `a9add7f`: route scopes in
+  `mythic-docker/src/webserver/initialize.go`, RPC scopes in `mythic-docker/src/rabbitmq/`, and
+  per-table read filters in `hasura-docker/metadata/databases/default/tables/`. Derived from
+  source; not yet confirmed with a live minimal-scope token. Re-check on any Mythic version bump.
+- Fixed this page's source-map row: `agent_capabilities.json` is Mythic marketplace metadata, not
+  the capability catalog.
+- The recorded baseline above was not moved: only this page was re-verified. Note that
+  `bd85f84` is not an ancestor of the current mirror HEAD, so the next full sync should establish
+  a new baseline rather than diff from it.

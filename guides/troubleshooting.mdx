@@ -40,9 +40,12 @@ MCP tools default to guarded. Classify read-only tools in `mcp_tool_policy.json`
 
 ## A guarded tool is missing or disabled
 
-The channel's bot token lacks the Mythic scope that tool requires (`callback.write`,
+The channel's bot token lacks the scope Sage checks for that tool (`callback.write`,
 `payload.write`, `credential.write`, or `file.write`), so Sage disables the tool up front. Add the
-scope to the bot token. See [Scope preflight](/reference/tools-and-capabilities#scope-preflight).
+scope to the bot token. If the tool is enabled but tasking fails with `missing_scope`, the token
+also needs `task.write`. If Sage reports no callbacks, output, or files that you can see in
+Mythic, the token is missing a read scope. See
+[Minimum bot token scopes](/reference/tools-and-capabilities#minimum-bot-token-scopes).
 
 ## An approved task ended without a confirmed result
 

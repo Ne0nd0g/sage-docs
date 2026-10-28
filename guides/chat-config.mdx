@@ -14,9 +14,9 @@ resolve against secrets and environment variables is covered in
   operator account. Mythic v4 issues bot tokens, and using one keeps attribution clear: tasks
   Sage issues are visibly the bot's, not yours. The channel token needs `apitoken.write` (to
   generate the scoped tokens the channel tools use) and `chat-ai.write` (to stream responses back
-  to the channel). Guarded tools additionally need `callback.write`, `payload.write`,
-  `credential.write`, or `file.write`; a tool whose scope the token lacks is disabled up front.
-  See [Scope preflight](/reference/tools-and-capabilities#scope-preflight).
+  to the channel). Sage also needs read scopes to observe Mythic, and write scopes such as
+  `task.write` for the guarded tools you want. See
+  [Minimum bot token scopes](/reference/tools-and-capabilities#minimum-bot-token-scopes).
 </Note>
 
 <Frame caption="The AI Chat API Token panel at the bottom of the dialog. Choose your operator account or the operation bot as Owner, then pick or create a token that carries both required scopes. The bot name is redacted.">
