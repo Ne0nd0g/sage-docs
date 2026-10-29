@@ -33,6 +33,11 @@ at runtime:
   </Step>
 </Steps>
 
+<Frame caption="Schema-driven tasking. Sage reads payload types, commands, and argument schemas from Mythic, checks the proposed task against them, and in supervised mode shows the resolved command on the approval card. This path works for any agent; packaged capabilities additionally need a payload adapter.">
+  <img className="block dark:hidden" src="/assets/schema-flow.png" alt="Diagram of schema-driven tasking: inside Mythic, payload types lead to commands, which lead to the parameter schema, and Sage also confirms the command is loaded on the callback it plans to use; Sage then builds a prepared task with arguments checked against the schema and repaired where possible, which becomes an approval card showing exactly what runs" />
+  <img className="hidden dark:block" src="/assets/schema-flow-dark.png" alt="Diagram of schema-driven tasking: inside Mythic, payload types lead to commands, which lead to the parameter schema, and Sage also confirms the command is loaded on the callback it plans to use; Sage then builds a prepared task with arguments checked against the schema and repaired where possible, which becomes an approval card showing exactly what runs" />
+</Frame>
+
 Tradecraft follows the same rule: `get_ttp_guidance` tailors a TTP's arguments and examples to how
 the target callback's agent runs the tool.
 
