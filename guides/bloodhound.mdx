@@ -1,6 +1,6 @@
 ---
 title: "BloodHound"
-description: "Connect BloodHound CE to Sage: the graph Sage observes, reasons over, and plans against."
+description: "Set up BloodHound CE for Sage: stand it up, create an API token, work out the URL Sage reaches it at, connect, and load graph data."
 ---
 
 Sage's graph analysis is backed by the
@@ -8,46 +8,129 @@ Sage's graph analysis is backed by the
 subprocess and connects to at startup. BloodHound is a pre-wired, dedicated MCP server with its
 own agent; to attach any *other* MCP server, see [Connecting MCP servers](/guides/mcp-servers).
 
-## Point Sage at the MCP server
+Sage needs three values to connect: a URL, an API token ID, and an API token key. This page
+walks through getting each one.
 
-Set the MCP checkout directory before starting Sage. The container image bakes its own default
-(`ENV SAGE_BLOODHOUND_MCP_DIR=/opt/bloodhound_mcp`), so under Mythic you can leave this commented
-unless you are pointing at your own checkout. For local development, uncomment in
-`Payload_Type/sage/.env`:
+## What you need
 
-```
-SAGE_BLOODHOUND_MCP_DIR=/path/to/bloodhound_mcp
-```
+| Component | Version | Notes |
+|---|---|---|
+| BloodHound Community Edition | 9.5.1 | The version this beta is validated against. Other versions are unvalidated. |
+| BloodHound MCP server | Pinned in the Sage image | Baked into the Sage container at `/opt/bloodhound_mcp`. Nothing to install under Mythic. |
 
-## Provide credentials
+BloodHound Enterprise is unvalidated for this beta.
 
-The MCP server needs to reach your BloodHound CE instance. Credentials resolve through the
-standard load order, so there are two places to set them without a shell:
+## Set up BloodHound for Sage
 
-1. **Mythic chat configuration** when you create the chat (per-chat, the same place your model
-   API key lives). Mythic **user secrets** work too and keep the token out of plaintext config.
-2. **Sage's own `.env`** (`InstalledServices/sage/.env` under Mythic), edited from the Mythic web
-   UI and shared by every chat in that container.
+<Steps>
+  <Step title="Stand up BloodHound CE">
+    Install BloodHound CE with the BloodHound CLI, following SpecterOps'
+    [Community Edition quickstart](https://bloodhound.specterops.io/get-started/quickstart/community-edition-quickstart).
+    The install prints the initial `admin` password; `./bloodhound-cli resetpwd` resets it if
+    you lose it. Run BloodHound on your own operator infrastructure and keep its ports off the
+    target network.
+  </Step>
+  <Step title="Create a dedicated user for Sage">
+    Logged in as an Administrator, create a BloodHound user for Sage instead of using your own
+    account, so Sage's activity is attributable and its token can be revoked on its own.
 
-| Setting | Purpose |
-|---|---|
-| `BLOODHOUND_URL` | Where BloodHound CE is, as one address: `scheme://host:port`. |
-| `BLOODHOUND_TOKEN_ID` | API token ID |
-| `BLOODHOUND_TOKEN_KEY` | API token key |
+    Give it the **Power User** role. Sage both reads the graph and ingests collection files, and
+    Power User is the narrowest role that allows both (User and Read-only cannot upload;
+    Upload-only cannot read the graph). See SpecterOps'
+    [users and roles](https://bloodhound.specterops.io/manage-bloodhound/auth/users-and-roles).
+
+    <Note>
+      Power User is the least-privilege choice on paper; it has not yet been validated with Sage.
+    </Note>
+  </Step>
+  <Step title="Create an API token">
+    On the **Manage Users** page, open the menu for the Sage user, choose
+    **Generate / Revoke API Tokens**, then **Create Token**. Name it, save, and copy both values
+    from the dialog:
+
+    | BloodHound shows | Sage setting |
+    |---|---|
+    | Token ID | `BLOODHOUND_TOKEN_ID` |
+    | Token key | `BLOODHOUND_TOKEN_KEY` |
+
+    **The key is shown once.** If you lose it, revoke the token and create a new one. Token pairs
+    do not expire. SpecterOps' [Working with the BloodHound API](https://bloodhound.specterops.io/integrations/bloodhound-api/working-with-api)
+    has screenshots of each dialog.
+  </Step>
+  <Step title="Work out BLOODHOUND_URL">
+    `BLOODHOUND_URL` is where *the Sage container* reaches BloodHound, as one address:
+    `scheme://host:port`. It is not the address in your browser bar. Sage refuses a value with a
+    path, query, fragment, or embedded credentials and tells you what to remove, so paste
+    `http://host:8080`, not `http://host:8080/ui/login`. The scheme must be `http` or `https`; the
+    port defaults to 80 or 443.
+
+    Mythic runs installed services such as Sage with Docker host networking, so `localhost` inside
+    the container is the Mythic host:
+
+    | Where BloodHound runs | `BLOODHOUND_URL` |
+    |---|---|
+    | Same Linux host as Mythic, stock install | `http://localhost:8080` |
+    | Another host | That host's address and port as seen from the Mythic host, for example `https://bloodhound.example.internal:8443` |
+    | Same Mac as Mythic, under Docker Desktop | `http://localhost:8080`, after enabling host networking (below) |
+
+    Docker Desktop supports host networking from version 4.34, but it is off by default. Enable it
+    under **Settings → Resources → Network → Enable host networking**, then **Apply and restart**
+    (see [Docker's host network driver](https://docs.docker.com/engine/network/drivers/host/)).
+    Without it, `localhost` inside the Sage container does not reach the Mac. This macOS path is
+    unvalidated for the beta.
+  </Step>
+  <Step title="Give Sage the three values">
+    Pick one place. Values resolve in this order, highest first: chat configuration, user secret,
+    container environment, `.env.local`, `.env`.
+
+    - **Mythic user secrets (recommended).** Create secrets named `BLOODHOUND_URL`,
+      `BLOODHOUND_TOKEN_ID`, and `BLOODHOUND_TOKEN_KEY`. They stay out of plaintext channel
+      configuration.
+    - **The chat's BloodHound fields** in the New AI Chat dialog. Values entered there are stored
+      in plaintext channel configuration. See [Chat channel configuration](/guides/chat-config).
+    - **Sage's `.env`** (`InstalledServices/sage/.env` under Mythic), edited from the Mythic
+      installed-services page and shared by every chat in that container. Restart the container
+      after saving.
+
+    A `BLOODHOUND_*` variable set directly on the container does not reach the MCP server: Sage
+    launches it with a fixed safe subset of its environment and forwards only the values it
+    resolves.
+  </Step>
+  <Step title="Connect and confirm">
+    Open a chat and run `/bloodhound`. It connects if needed and reports the connection either
+    way, so it is also the safe way to ask whether BloodHound is connected. The chip row above the
+    transcript shows **BloodHound connected** once it succeeds; see
+    [Reading the chips](/guides/using-chat#reading-the-chips).
+
+    If it does not connect, check the Sage container log; see
+    [When BloodHound is not connected](#when-bloodhound-is-not-connected).
+  </Step>
+  <Step title="Load graph data">
+    A connected BloodHound with no data answers every path question with an empty graph. Collect
+    and ingest first:
+
+    - The `collect-graph` capability runs SharpHound on a callback and ingests the result. It runs
+      only on footholds with a payload adapter; see
+      [Payload adapters](/reference/tools-and-capabilities#payload-adapters).
+    - On any other agent, run SharpHound through ordinary tasking, download the ZIP, and ingest it
+      with `ingest_collection`. The bytes go from Mythic straight into BloodHound.
+    - You can also upload a collection yourself in the BloodHound UI.
+
+    Ingest is asynchronous, so newly ingested domains can take a few seconds to appear.
+  </Step>
+</Steps>
 
 ## The connection is process-global: configure once
 
 The first chat that connects successfully establishes the BloodHound connection for the whole
-container; every later chat reuses it. **Fill these fields in once and leave them blank in
+container; every later chat reuses it. **Fill these values in once and leave them blank in
 subsequent chats.**
 
 - A failed connect establishes nothing; the next chat tries again from scratch. You are not
   stuck with a bad connection.
-- Plain `/bloodhound` is idempotent: it reports an existing connection and is a safe way to ask
-  whether BloodHound is connected.
 - `/bloodhound force` rebinds an already-connected container to the current chat's resolved
-  credentials without a restart. The rebind disconnects before connecting, so if the new settings
-  are wrong you are left with no connection rather than the old one. `/bloodhound` will connect
+  values without a restart. The rebind disconnects before connecting, so if the new settings are
+  wrong you are left with no connection rather than the old one. `/bloodhound` will connect
   again once you have fixed the configuration.
 
 ## When BloodHound is not connected
@@ -71,6 +154,28 @@ Credentials Sage resolved for this attempt: NONE
 Missing (required): BLOODHOUND_URL, BLOODHOUND_TOKEN_ID, BLOODHOUND_TOKEN_KEY
 ```
 
-It names which credentials arrived and which did not, never their values. A bare
+It names which credentials arrived and which did not, never their values. A malformed
+`BLOODHOUND_URL` is logged separately with the part to remove. A bare
 `McpError: Connection closed` with no explanation means you are on a build from before this was
 fixed.
+
+## Use your own MCP checkout
+
+<Accordion title="Advanced: point Sage at a different BloodHound MCP checkout">
+  The image pins the BloodHound MCP server at commit
+  [`92a37dd`](https://github.com/mwnickerson/bloodhound_mcp/tree/92a37dd481ce675fe552f14c9957a31dbbcd212e),
+  the commit this beta is validated against. Override it only if you need a different revision.
+
+  Set `SAGE_BLOODHOUND_MCP_DIR` to the checkout's path *inside the container*. Under Mythic, only
+  the service directory (`InstalledServices/sage`) is mounted, at `/Mythic`, so clone the server
+  there and point Sage at `/Mythic/bloodhound_mcp`. Anything written into the baked
+  `/opt/bloodhound_mcp` is lost on the next image rebuild. The service directory is created owned
+  by root, so writing into it needs elevation.
+
+  The trade-offs: the checkout is no longer pinned by the image, `uv` resolves its dependencies on
+  first connect (so that connect needs network access), and a `.env` beside it holds credentials
+  in plaintext. `/bloodhound <directory>` connects from a given checkout for testing.
+
+  For local development outside Mythic there is no baked checkout: set `SAGE_BLOODHOUND_MCP_DIR`
+  in `Payload_Type/sage/.env` to your own clone.
+</Accordion>

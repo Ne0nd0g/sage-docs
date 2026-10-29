@@ -27,7 +27,7 @@ page-level line mapping is done during verification, not recorded here.
 | `understand/**` | `README.md`, `docs/SECURITY_AND_DATA_HANDLING.md`, `docs/architecture/`, `Payload_Type/sage/sage_chat/` |
 | `guides/using-chat`, `understand/authority-modes` | `README.md`, `Payload_Type/sage/sage_chat/` (`hitl.py`, `slash.py`, `config.py`), `Payload_Type/sage/prompts/` |
 | `guides/chat-config` | `Payload_Type/sage/sage_chat/models.py` (config options, channel token scopes), Mythic `New AI Chat` dialog |
-| `guides/bloodhound` | `Payload_Type/sage/` BloodHound connect code, `Payload_Type/sage/.env` resolution, `Payload_Type/sage/mcp_tool_policy.json` |
+| `guides/bloodhound` | `README.md` (Requirements, BloodHound), `docs/configuration/BLOODHOUND.md`, `Payload_Type/sage/Dockerfile` (MCP pin, baked dir), `Payload_Type/sage/ai/bloodhound_config.py` (URL parsing, required tools, diagnostics), `Payload_Type/sage/sage_chat/config.py` (`build_bloodhound_env`), `Payload_Type/sage/sage_chat/slash.py` (`/bloodhound`), `Payload_Type/sage/mcp_tool_policy.json`; Mythic `Mythic_CLI` (installed services use host networking) |
 | `understand/limitations` | `README.md` (Requirements, Limitations), `CHANGELOG.md` (Validation), `docs/releases/` |
 | `guides/troubleshooting` | Error strings and behaviors drawn from the pages it links; re-check whenever those pages change |
 | `reference/release-notes` | `CHANGELOG.md`, `docs/releases/` |
@@ -83,3 +83,15 @@ Capability list (2026-10-28), `reference/tools-and-capabilities` only:
 - The recorded baseline above was not moved: only this page was re-verified. Note that
   `bd85f84` is not an ancestor of the current mirror HEAD, so the next full sync should establish
   a new baseline rather than diff from it.
+
+BloodHound setup (2026-10-28), `guides/bloodhound` only:
+
+- Expanded the page into a setup guide against mirror HEAD `fe151bf`: versions from the README
+  Requirements and Dockerfile pin, URL rules from `parse_bloodhound_url`, resolution order and
+  secret names from `build_bloodhound_env`, `/bloodhound` semantics from `slash.py`, ingest from
+  the `ingest_collection` docstring.
+- Host networking for installed services verified in Mythic `Mythic_CLI` at `a9add7f`
+  (`Add3rdPartyService` sets `network_mode: host`).
+- Token creation, roles, and Docker Desktop host networking are linked to SpecterOps and Docker
+  documentation rather than captured from a live UI. The Power User recommendation is inferred
+  from SpecterOps' role table and not yet tested with Sage.
