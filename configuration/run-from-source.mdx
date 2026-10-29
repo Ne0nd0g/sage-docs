@@ -1,0 +1,145 @@
+---
+title: "Run from source and debug logging"
+description: "Run Sage as a local Python process against a Docker-backed Mythic, and turn on debug logging for either setup."
+---
+
+The supported install runs Sage as a Mythic-installed container; see the
+[Quickstart](/quickstart). For development, or to watch Sage's output directly while you
+troubleshoot, you can instead run Sage from a source checkout as an ordinary Python process while
+Mythic itself stays in Docker. Sage can run on the Mythic host or on another machine that can reach
+it.
+
+To raise log verbosity on a normal Mythic install, skip to [Debug logging](#debug-logging).
+
+## What you need
+
+- A running Mythic install that this machine can reach. This beta is qualified against Mythic
+  `v4.0.0rc5`; see [Limitations](/understand/limitations).
+- Python 3.14.
+- A clone of the [Sage repository](https://github.com/MythicAgents/Sage).
+- Optionally, a local clone of the
+  [BloodHound MCP server](https://github.com/mwnickerson/bloodhound_mcp). The container image
+  bakes one in; a source run has none. See [BloodHound](/guides/bloodhound).
+
+## Run Sage from source
+
+<Steps>
+  <Step title="Create the virtual environment">
+    From the root of your Sage clone:
+
+    ```bash
+    python3 -m venv .venv
+    .venv/bin/pip install -r Payload_Type/sage/requirements-dev.txt -c Payload_Type/sage/constraints.txt
+    ```
+
+    `constraints.txt` pins every transitive dependency, so your environment matches the one the
+    tests passed on and the container image.
+  </Step>
+  <Step title="Take the Sage container out of the way">
+    A source run and the installed container would both consume Sage's queue on the same Mythic,
+    so run only one. On the Mythic host, from your Mythic directory, stop the container:
+
+    ```bash
+    sudo ./mythic-cli stop sage
+    ```
+
+    A later `mythic-cli start` or `restart` with no service name starts it again. To keep it off
+    across Mythic restarts, also remove it from Mythic's Docker Compose file with
+    `sudo ./mythic-cli remove sage` (run it after `stop`), and put it back later with
+    `sudo ./mythic-cli add sage`.
+  </Step>
+  <Step title="Point Sage at Mythic">
+    Inside Docker, Mythic injects these values. A source run has to supply them:
+
+    | Variable | Value |
+    |---|---|
+    | `RABBITMQ_HOST` | The Mythic host's address; `127.0.0.1` on the Mythic host itself |
+    | `MYTHIC_SERVER_HOST` | Same as `RABBITMQ_HOST` |
+    | `NGINX_HOST` | Same as `RABBITMQ_HOST`; used to download files registered in Mythic |
+    | `RABBITMQ_PASSWORD` | The `RABBITMQ_PASSWORD` value from the `.env` file in your Mythic directory |
+    | `DEBUG_LEVEL` | Optional: `debug`, `info`, or `warning`. See [Debug logging](#debug-logging). |
+    | `SAGE_BLOODHOUND_MCP_DIR` | Optional: the path to your BloodHound MCP clone |
+
+    By default Mythic publishes RabbitMQ (port 5672) and the Mythic server (ports 17443 and 17444)
+    on the host's loopback interface only, so `127.0.0.1` works on the Mythic host and nothing
+    else can connect. To run Sage on another machine, open both up on the Mythic host and restart
+    Mythic:
+
+    ```bash
+    sudo ./mythic-cli config set rabbitmq_bind_localhost_only false
+    sudo ./mythic-cli config set mythic_server_bind_localhost_only false
+    sudo ./mythic-cli restart
+    ```
+
+    That exposes Mythic's broker and server to the network, so limit access to those ports with a
+    host firewall or keep them on a trusted management network. The web UI port (7443) already
+    listens on all interfaces by default.
+
+    Put these in `Payload_Type/sage/.env.local`. Sage reads it before `.env` at startup, and git
+    ignores it, so your password and paths stay out of the tracked `.env`. Variables already set in
+    your shell take precedence over both files. Model settings and BloodHound credentials still
+    come from chat configuration or Mythic user secrets, exactly as under Mythic; see
+    [Environment and configuration](/configuration/environment).
+  </Step>
+  <Step title="Start Sage">
+    ```bash
+    cd Payload_Type/sage
+    ../../.venv/bin/python -u main.py
+    ```
+
+    Sage runs in the foreground and logs to the terminal. Stop it with Ctrl-C. To keep it running
+    after you close the terminal, start it inside `tmux` or `screen`.
+  </Step>
+  <Step title="Confirm it connected">
+    In the Mythic UI, Sage's chat container shows as online, and **New AI Chat** offers Sage. At
+    `info` or `debug`, the terminal also prints Sage's startup banner and the names (never the
+    values) of the settings it loaded from `.env` files.
+  </Step>
+</Steps>
+
+<Note>
+  A source run keeps its database, `sage.db`, in `Payload_Type/sage/` of your checkout instead of
+  the Mythic service directory, so it starts with its own history. See
+  [Runtime state and resets](/configuration/runtime-state).
+</Note>
+
+When you are done, stop the source run and start the container again with
+`sudo ./mythic-cli start sage` (or `add sage` first if you removed it).
+
+If you contribute to Sage, the repository also includes a restart script used by its maintainers
+that wraps these steps; the steps above do not need it.
+
+## Debug logging
+
+Sage logs through Mythic's container logging library, which reads one setting, `DEBUG_LEVEL`:
+`debug`, `info`, or `warning`. Any other value falls back to `warning`.
+
+<Tabs>
+  <Tab title="Mythic install">
+    Mythic sets `DEBUG_LEVEL` for its server and every installed service from its own
+    `debug_level` setting, which defaults to `warning`. From your Mythic directory:
+
+    ```bash
+    sudo ./mythic-cli config set debug_level debug
+    sudo ./mythic-cli restart sage
+    ```
+
+    Restarting the service is what applies the change: Mythic regenerates the container's
+    configuration from its `.env` on every start. Read the output with
+    `sudo ./mythic-cli logs sage`. The setting also raises verbosity for Mythic's server and other
+    installed services, so set it back to `warning` when you are done.
+
+    A `DEBUG_LEVEL` line in Sage's `.env` has no effect here, because a variable Mythic injects
+    always wins.
+  </Tab>
+  <Tab title="From source">
+    Set `DEBUG_LEVEL=debug` in `Payload_Type/sage/.env.local` or in your shell, then restart the
+    process. Output goes to the terminal.
+  </Tab>
+</Tabs>
+
+`DEBUG_LEVEL` governs Sage's main logger. A few internal modules log on their own loggers, which
+show warnings and errors at any level but not their debug messages.
+
+For model-level detail (each prompt, tool call, and decision), use tracing instead; see
+[Observability](/configuration/observability).

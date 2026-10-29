@@ -54,6 +54,7 @@
         "pages": [
           "configuration/environment",
           "configuration/runtime-state",
+          "configuration/run-from-source",
           "configuration/observability"
         ]
       },

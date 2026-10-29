@@ -37,6 +37,7 @@ page-level line mapping is done during verification, not recorded here.
 | `guides/engagement-ledger` | `Payload_Type/sage/sage_chat/` (ledger, operation memory, report identity/observations), `Payload_Type/sage/runtime_db.py` |
 | `configuration/environment` | `config.json`, `Payload_Type/sage/dotenv_bootstrap.py`, `Payload_Type/sage/config.py` |
 | `configuration/runtime-state` | `Payload_Type/sage/runtime_db.py`, `Payload_Type/sage/ai/langgraph/engagement_ledger.py`, `Payload_Type/sage/container/`, Mythic CLI (`stop`/`start`) |
+| `configuration/run-from-source` | `README.md` (Requirements, Local development, `.env` loading), `Payload_Type/sage/main.py`, `Payload_Type/sage/dotenv_bootstrap.py` (`.env.local` then `.env`), `Payload_Type/sage/runtime_db.py` (default `sage.db` path), `Payload_Type/sage/requirements*.txt`, `constraints.txt`, the repo's local restart script (env defaults it applies); `mythic-container` `logging.py`/`config.py` (`DEBUG_LEVEL`); Mythic `Mythic_CLI` (`debug_level`, `stop`/`start`/`restart`/`remove`/`add`/`logs`, loopback port bindings) |
 | `configuration/observability` | `skills/phoenix-traces/`, `Payload_Type/sage/container/` |
 | `reference/tools-and-capabilities` | `docs/reference/TOOLS_AND_CAPABILITIES.md`, `Payload_Type/sage/tools/`, `Payload_Type/sage/ai/langgraph/capabilities.py` (capability catalog), `Payload_Type/sage/ai/langgraph/mythic_capability_adapter.py` (payload profiles), `Payload_Type/sage/ai/langgraph/mythic_tools.py` (tool safety, scopes, discovery and tasking), `Payload_Type/sage/ai/langgraph/command_parameter_schema.py`, `Payload_Type/sage/ai/langgraph/command_builder.py`, `Payload_Type/sage/ai/comparison_tool_surface.py` (agent-visible tool lists), `Payload_Type/sage/prompts/` (frontmatter tool lists) |
 | `reference/slash-commands` | `Payload_Type/sage/sage_chat/slash.py`, `Payload_Type/sage/prompts/` |
@@ -95,3 +96,21 @@ BloodHound setup (2026-10-28), `guides/bloodhound` only:
 - Token creation, roles, and Docker Desktop host networking are linked to SpecterOps and Docker
   documentation rather than captured from a live UI. The Power User recommendation is inferred
   from SpecterOps' role table and not yet tested with Sage.
+
+Run from source (2026-10-29), `configuration/run-from-source` (new) and one `guides/troubleshooting` entry:
+
+- Local-run steps from the README (Requirements, Local development) and the restart script's
+  fresh-start path at mirror HEAD `fe151bf`: venv plus constrained install, `RABBITMQ_HOST` and
+  `MYTHIC_SERVER_HOST` at `127.0.0.1`, `RABBITMQ_PASSWORD` from Mythic's `.env`, then
+  `python -u main.py` from `Payload_Type/sage`. `.env.local` precedence and git-ignore status from
+  `dotenv_bootstrap.py` and `.gitignore`.
+- `DEBUG_LEVEL` values and fallback from `mythic-container==0.7.0rc9` (`logging.py`, Dynaconf
+  settings with no env prefix). Modules on `getLogger(__name__)` are not under the `mythic` logger
+  and the root logger is unconfigured, so they emit warnings and above only.
+- Mythic side at `a9add7f`: `debug_level` default `warning`, applied to all installed services;
+  `ServiceStart` regenerates service config on every start; RabbitMQ 5672 and server 17443/17444
+  bind to localhost by default (`rabbitmq_bind_localhost_only`, `mythic_server_bind_localhost_only`),
+  nginx 7443 to all interfaces. A remote source run needs both binds set to `false`; Sage reaches
+  Mythic only through `RABBITMQ_HOST`, `MYTHIC_SERVER_HOST` (gRPC), and `NGINX_HOST`.
+- Not yet run end to end on a live host; the "stop the container first" step is inferred from both
+  copies consuming one queue.

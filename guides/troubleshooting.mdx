@@ -7,6 +7,13 @@ Each entry starts from what you see, explains the cause, and links to the page t
 Check the Sage container log first: Sage names missing settings and failing paths there rather than
 failing silently.
 
+## The log does not show enough detail
+
+Mythic runs installed services at the `warning` log level by default. Raise it to `debug` with
+`sudo ./mythic-cli config set debug_level debug`, then `sudo ./mythic-cli restart sage`, and read
+the output with `sudo ./mythic-cli logs sage`. To watch Sage in a terminal instead, run it from
+source. See [Run from source and debug logging](/configuration/run-from-source#debug-logging).
+
 ## `unable to open database file` at startup
 
 Sage's SQLite databases sit on a filesystem that does not support SQLite locking. This happens
