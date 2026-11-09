@@ -138,6 +138,7 @@ Engagement State Ledger (2026-11-09), ledger content on eleven pages, against Sa
   keeps the v0.2.0 wording.
 - Updated the `guides/engagement-ledger` and `configuration/runtime-state` source-map rows to the
   files the ledger actually lives in.
-- `assets/screens/engagement-ledger-state.png` predates these changes (old columns and correction
-  commands); its caption says so until a new capture replaces it.
+- `assets/screens/engagement-ledger-state.png` was recaptured from a current build: the table shows
+  the shipping columns (#, Hop, Effect, Status, Task, CB) and current correction commands, cropped to
+  the ledger from a supervised run with six achieved hops. Its caption describes that capture.
 - The recorded baseline above was not moved: only the ledger content was re-verified.
