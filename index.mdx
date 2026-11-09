@@ -36,10 +36,11 @@ Three boundaries define the product:
 - **Sage-local attack artifacts are not proof.** Runtime effects and objective completion require
   Mythic task output and artifacts, Mythic credential-store state, or BloodHound facts derived
   from payload-collected artifacts. Self-reported success is not recorded.
-- **Proof is enforced, not asserted.** A durable [engagement
-  ledger](/understand/how-sage-works#the-engagement-ledger) records each achieved effect with a
-  proof envelope: the Mythic callback, task, and transaction ids, plus verifier result hashes. A
-  row without a valid envelope can never count as achieved.
+- **Proof is enforced, not asserted.** The durable [Engagement State
+  Ledger](/understand/how-sage-works#the-engagement-state-ledger) records each achieved effect with
+  a proof envelope naming what it rests on, such as the Mythic callback, task, transaction, or
+  credential ID, plus verifier result hashes. A row without an admissible envelope can never count
+  as achieved.
 
 ## Two ways to work
 
@@ -65,7 +66,7 @@ Three boundaries define the product:
   </Card>
   <Card title="How Sage works" icon="sitemap" href="/understand/how-sage-works">
     The observe → model → select → execute → verify loop, the specialist agent graph, and the
-    engagement ledger.
+    Engagement State Ledger.
   </Card>
   <Card title="Authority modes" icon="scale-balanced" href="/understand/authority-modes">
     What `conversation`, `supervised`, and `auto` mean, and exactly where the approval wall sits.

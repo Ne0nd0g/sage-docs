@@ -8,10 +8,13 @@ noted).
 
 | Command | What it does |
 |---|---|
-| `/state` | Show the [engagement ledger](/guides/engagement-ledger), the durable hop table of proven effects shared by chats in the current Mythic operation engagement |
-| `/state objective <text>` | Set the engagement objective |
-| `/state reconcile [task_id] [apply]` | Import verified effects and credentials from completed Mythic tasks (**dry-run unless `apply` is given**, because task output is attacker-influenceable) |
-| `/state set <row> <status>` · `/state remove <row>` · `/state wipe` | Edit or clear ledger rows (you cannot hand-promote a row to `achieved`; that needs a real proof envelope) |
+| `/state` | Show the [Engagement State Ledger](/guides/engagement-ledger), the durable table of achieved and pending gains shared by every chat in the current Mythic operation |
+| `/state help` | Show `/state` usage without reading the ledger |
+| `/state objective <text>` | Set the operation's stored compatibility objective (an operation setting, not a channel goal) |
+| `/state reconcile [<id>[,<id>…]] [apply]` | Record verified effects from the operation's completed Mythic tasks, from any issuer, or from the cited task IDs, `cred:<id>`, and `file:<id>` entries. Verified updates are saved immediately; importing missing credential material into Mythic's credential store is **previewed unless `apply` is given**, because task output is attacker-influenceable |
+| `/state set <#> achieved task=<id> type=<type> account=<account>@<realm> line=<n> after=<text>` | Promote a pending account-secret row to credential material by citing where the secret sits in a task's output; Sage never takes the secret itself |
+| `/state remove <#>` · `/state restore <#>` · `/state invalidate <#>` | Retract a row, undo a retraction, or mark a row as no longer holding; add `--reason <text>` to record why. Rows are kept and numbered, and no command marks a row `achieved` without verified evidence |
+| `/state wipe` | Retract every row and every current graph fact; nothing is deleted or renumbered |
 | `/mode` | Show the channel's current mode |
 | `/mode conversation\|supervised\|auto` | Switch the channel's mode |
 | `/list` | List active Sage chat sessions |
@@ -39,9 +42,9 @@ Available with the separate `Sage Watcher` model; see the
   updates there, and `/findings` (aliased by the legacy `/finding` spelling) shows the same
   canonical view plus watcher health from either model. The bare word `findings` in conversation
   is an ordinary prompt with no special behavior.
-- `/state` is available in conversation, supervised, and auto modes. Its ledger is shared across
-  chats in the same operation engagement and persists once written. A new engagement can show an
+- `/state` is available in conversation, supervised, and auto modes. Its Engagement State Ledger is
+  shared across chats in the same operation and persists once written. A new operation can show an
   empty ledger: viewing operation details or callbacks does not record an achieved effect, and
-  reading `/state` alone does not create a ledger file.
+  reading `/state` does not add rows.
 - `/tools` and simple questions such as *"list your tools"* use the same deterministic inventory
   without a model call. Before a session is initialized, live token availability is unverified.

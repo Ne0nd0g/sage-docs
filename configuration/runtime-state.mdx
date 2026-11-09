@@ -10,13 +10,32 @@ Under a Mythic install, all of these sit in the Sage service directory,
 
 | Path | Contents | Override |
 |---|---|---|
-| `sage.db` | LangGraph checkpoints, tool cache, channel markers, controller recovery, and operation memory (including retained report observations). Separate APIs on one physical SQLite file, with separate erasure lifecycles. | `SAGE_DATABASE_PATH` |
+| `sage.db` | LangGraph checkpoints, tool cache, channel markers, controller recovery, operation memory (including retained report observations), and the [Engagement State Ledger](/guides/engagement-ledger). Separate APIs on one physical SQLite file, with separate erasure lifecycles. | `SAGE_DATABASE_PATH` |
 | `.phoenix/phoenix.db` | Observability (trace) history. See [Observability](/configuration/observability). | `PHOENIX_WORKING_DIR` |
-| `.sage_engagement/state_<operation>.json` | The [engagement ledger](/guides/engagement-ledger), one JSON file per Mythic operation. | `SAGE_ENGAGEMENT_STATE_DIR` |
+| `.sage_engagement/` | Artifacts and decision records. Ledger JSON files from releases before the Engagement State Ledger moved into `sage.db` also sit here until you import them. | `SAGE_ENGAGEMENT_STATE_DIR` |
 
 All three are retained trajectory data. The `sage.db` and Phoenix default paths are independent of
-the process working directory; the ledger directory is created in the working directory of the Sage
-process, which under Mythic is the service directory.
+the process working directory; the `.sage_engagement/` directory is created in the working
+directory of the Sage process, which under Mythic is the service directory.
+
+## Importing a ledger from an earlier release
+
+Earlier releases stored the ledger as `.sage_engagement/state_<operation>.json` files. While such a
+file is present and not yet imported, Sage reports the Engagement State Ledger as unavailable and
+names the file. Stop Sage, then run the import from the root of a Sage source checkout (the script
+is not in the container image):
+
+```bash
+sudo ./mythic-cli stop sage
+python3 skills/sage-goad-reset/scripts/engagement_ledger_migrate.py import --sage-stopped \
+  --database <mythic dir>/InstalledServices/sage/sage.db \
+  --legacy-dir <mythic dir>/InstalledServices/sage/.sage_engagement
+sudo ./mythic-cli start sage
+```
+
+The import never modifies the source files, and a repeated import of the same file changes
+nothing. A file whose name does not identify its operation needs `--map FILE=KEY`, or
+`--exclude FILE` to record it as deliberately not imported.
 
 ## SQLite on macOS
 
@@ -42,7 +61,7 @@ reinstall).
 
 An active chat channel retains its session across ordinary turns, including pending approvals.
 After a Sage restart, ordinary supervised chat does **not** restore prior conversational scope and
-evidence. The engagement ledger, read-only `/state`, `/report`, and tool discovery remain
+evidence. The Engagement State Ledger, read-only `/state`, `/report`, and tool discovery remain
 available; start a fresh channel and restate scope and evidence before continuing model work.
 
 ## Clean resets

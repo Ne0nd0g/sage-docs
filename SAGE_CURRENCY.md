@@ -34,9 +34,9 @@ page-level line mapping is done during verification, not recorded here.
 | `guides/mcp-servers` | `Payload_Type/sage/mcp_tool_policy.json`, Sage MCP connect/classification code |
 | `guides/custom-tls` | `Payload_Type/sage/ssl_bootstrap.py`, `Payload_Type/sage/certs/`, `Payload_Type/sage/ai/langgraph/mythic_tools.py` (Mythic login and registered-file download), `mythic` client package (`mythic_utilities.py` TLS handling) |
 | `guides/findings-watcher` | `Payload_Type/sage/sage_chat/` (findings watcher) |
-| `guides/engagement-ledger` | `Payload_Type/sage/sage_chat/` (ledger, operation memory, report identity/observations), `Payload_Type/sage/runtime_db.py` |
+| `guides/engagement-ledger` | `Payload_Type/sage/ai/langgraph/` (`engagement_store.py`, `engagement_ledger.py`, `engagement_state.py`, `proof_boundary.py`, `effect_rules.py`, and the reconcile and evidence tools in `mythic_tools.py`), `Payload_Type/sage/sage_chat/slash.py` (`/state`), `Payload_Type/sage/sage_chat/` (operation memory, report identity/observations), `Payload_Type/sage/runtime_db.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py` |
 | `configuration/environment` | `config.json`, `Payload_Type/sage/dotenv_bootstrap.py`, `Payload_Type/sage/config.py` |
-| `configuration/runtime-state` | `Payload_Type/sage/runtime_db.py`, `Payload_Type/sage/ai/langgraph/engagement_ledger.py`, `Payload_Type/sage/container/`, Mythic CLI (`stop`/`start`) |
+| `configuration/runtime-state` | `Payload_Type/sage/runtime_db.py`, `Payload_Type/sage/ai/langgraph/engagement_store.py` (ledger tables, legacy-file guard), `Payload_Type/sage/ai/langgraph/engagement_ledger.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py`, `Payload_Type/sage/container/`, Mythic CLI (`stop`/`start`) |
 | `configuration/run-from-source` | `README.md` (Requirements, Local development, `.env` loading), `Payload_Type/sage/main.py`, `Payload_Type/sage/dotenv_bootstrap.py` (`.env.local` then `.env`), `Payload_Type/sage/runtime_db.py` (default `sage.db` path), `Payload_Type/sage/requirements*.txt`, `constraints.txt`, the repo's local restart script (env defaults it applies); `mythic-container` `logging.py`/`config.py` (`DEBUG_LEVEL`); Mythic `Mythic_CLI` (`debug_level`, `stop`/`start`/`restart`/`remove`/`add`/`logs`, loopback port bindings) |
 | `configuration/observability` | `skills/phoenix-traces/`, `Payload_Type/sage/container/` |
 | `reference/tools-and-capabilities` | `docs/reference/TOOLS_AND_CAPABILITIES.md`, `Payload_Type/sage/tools/`, `Payload_Type/sage/ai/langgraph/capabilities.py` (capability catalog), `Payload_Type/sage/ai/langgraph/mythic_capability_adapter.py` (payload profiles), `Payload_Type/sage/ai/langgraph/mythic_tools.py` (tool safety, scopes, discovery and tasking), `Payload_Type/sage/ai/langgraph/command_parameter_schema.py`, `Payload_Type/sage/ai/langgraph/command_builder.py`, `Payload_Type/sage/ai/comparison_tool_surface.py` (agent-visible tool lists), `Payload_Type/sage/prompts/` (frontmatter tool lists) |
@@ -114,3 +114,30 @@ Run from source (2026-10-29), `configuration/run-from-source` (new) and one `gui
   Mythic only through `RABBITMQ_HOST`, `MYTHIC_SERVER_HOST` (gRPC), and `NGINX_HOST`.
 - Not yet run end to end on a live host; the "stop the container first" step is inferred from both
   copies consuming one queue.
+
+Engagement State Ledger (2026-11-09), ledger content on eleven pages, against Sage `release/0.3.0` at
+`8d68472` (ledger code identical to `556c697`; HEAD is after `v0.2.0` and inside no tag):
+
+- Rewrote `guides/engagement-ledger`, the ledger section of `understand/how-sage-works`, the
+  `/state` rows of `reference/slash-commands`, and the state table of `configuration/runtime-state`.
+  The ledger moved from `.sage_engagement/state_<operation>.json` into `sage.db`
+  (`engagement_store.py`); rows are `achieved` or `pending` (`_ROW_STATUSES`); unproven achieved
+  writes become `pending`/`proof_missing` (`engagement_state.py` `record_effect_result`); proof
+  origins include callbacks and derived rules (`proof_boundary.py`); the Supervisor and
+  Mythic_Operator get a fresh ledger view per model call (`model.py`
+  `_EngagementLedgerViewMiddleware`); turn-end reconciliation reads every issuer's tasks
+  (`mythic_tools.py` `_reconcile_operation`); `/state` subcommands from `slash.py` `_STATE_USAGE`.
+- Added "Importing a ledger from an earlier release" to `configuration/runtime-state`: the
+  legacy-file guard (`engagement_store.py` `_assert_legacy_imported`) and the migration script's
+  `import` options. The script lives in the Sage repository, not the container image.
+- Small fixes on `index` (proof envelope contents) and `guides/using-chat` (`/state` line).
+- Applied the ledger's formal name, Engagement State Ledger, to every ledger mention on those pages
+  and on `quickstart`, `understand/limitations`, `understand/security-and-data-handling`,
+  `guides/troubleshooting`, and `reference/tools-and-capabilities`. The `how-sage-works` anchor is
+  now `#the-engagement-state-ledger`; its three inbound links follow. `reference/release-notes`
+  keeps the v0.2.0 wording.
+- Updated the `guides/engagement-ledger` and `configuration/runtime-state` source-map rows to the
+  files the ledger actually lives in.
+- `assets/screens/engagement-ledger-state.png` predates these changes (old columns and correction
+  commands); its caption says so until a new capture replaces it.
+- The recorded baseline above was not moved: only the ledger content was re-verified.

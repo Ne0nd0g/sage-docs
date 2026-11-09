@@ -1,11 +1,11 @@
 ---
 title: "How Sage works"
-description: "The observe → model → select → execute → verify loop, the two execution paths, the specialist agent graph, and the engagement ledger that makes effects durable."
+description: "The observe → model → select → execute → verify loop, the two execution paths, the specialist agent graph, and the Engagement State Ledger that makes effects durable."
 ---
 
 Sage turns a question or an objective into Mythic tasks. This page explains the loop it runs, the
-two execution paths that carry it, the agents on the interactive path, and the engagement ledger
-that records what has actually been achieved.
+two execution paths that carry it, the agents on the interactive path, and the Engagement State
+Ledger that records what the operation has gained.
 
 ## Two product contracts
 
@@ -32,7 +32,7 @@ When authority permits action, Sage runs an observe / model / select / execute /
 3. **Select** the next action.
 4. **Execute** it as a real Mythic task on a live payload callback.
 5. **Verify** the effect from real proof, then repair or re-plan, appending every proven effect
-   to the engagement ledger.
+   to the Engagement State Ledger.
 
 LLM judgment is deliberately split from deterministic execution and verification: a model proposes,
 and deterministic machinery and verifiers own correctness. In an objective run, a deterministic
@@ -83,15 +83,21 @@ Each agent's system prompt, and the TTP library the agents plan from, are plain 
 repository that you can edit. See
 [Tools and capabilities](/reference/tools-and-capabilities#extension-points).
 
-## The engagement ledger
+## The Engagement State Ledger
 
 An LLM does not remember your engagement between turns. Sage keeps that memory outside the model,
-in a durable engagement ledger: one JSON file per Mythic operation, holding a table of hops toward
-the objective, each with a status. Every chat in the same operation shares it. You read and edit it
-in chat with `/state`; the operator's side of that is covered in
-[The engagement ledger](/guides/engagement-ledger).
+in the Engagement State Ledger: one ledger per Mythic operation in `sage.db`, holding a table of
+the capabilities and credential material the operation has gained, each `achieved` or `pending`.
+A `pending` row is waiting for its effect or its proof and never satisfies a capability's
+precondition. Every chat in the operation shares the ledger, and the Supervisor and
+Mythic_Operator get a fresh view of it on every model call, so a new chat starts from what the
+operation has already proven. You read and correct it in chat with `/state`; the operator's side
+of that is covered in [The Engagement State Ledger](/guides/engagement-ledger).
 
-A hop flips to `achieved` only when a verifier confirms the effect from real evidence. Each achieved
-hop carries a proof envelope: the Mythic callback, task, and transaction ids, the terminal task
-status, and the verifier's input and result hashes. A row without a valid envelope is quarantined
-and can never count as proof.
+A row counts as `achieved` only when it traces back to real evidence: a verifier's check of Mythic
+task output or files, Mythic's credential store, Mythic's callback records, or BloodHound data
+collected through a payload, or a rule in Sage's code that derives it from rows that already have
+that proof. Each achieved row carries a proof envelope recording what it rests on (the Mythic
+callback, task, transaction, credential, file, or BloodHound ingest it came from, or the rule and
+premise rows behind a derived row) and the verifier's input and result hashes. An achieved write
+without an admissible envelope is stored as `pending` and never counts as proof.
