@@ -14,7 +14,7 @@ re-verification pass of every affected page.
 | Tags before that point | `v0.1.0-alpha`, `v0.1.0-beta`, `v0.2.0` |
 | Verified on | 2026-11-12 |
 | Mirror working tree | dirty at verification time (unrelated uncommitted work); every file was read from the tag with `git show`, never from the working tree |
-| Subject to the maturity posture | yes: authorized-use-only, maturity status, Mythic version qualification, and autonomous-agent risk language in the Sage README must survive every sync. At `v0.3.0` the README dropped the "beta" label for "still maturing" and "under active development"; the docs follow that wording |
+| Subject to the beta posture | yes: authorized-use-only, beta status, Mythic version qualification, and autonomous-agent risk language in the Sage README must survive every sync. At `v0.3.0` the README dropped the word "beta" (it says "still maturing" and "under active development"); the operator keeps beta status in the docs (2026-11-12) |
 
 ## Source map (page groups to Sage files)
 
@@ -150,8 +150,9 @@ CHANGELOG section, and the README diff, with full diffs for every mapped file):
 - Posture: carried the README's new Mythic target into `index`, `quickstart`,
   `configuration/run-from-source`, and `understand/limitations` (0.3.0 qualification on Mythic
   `v4.0.8`, reported in the GitHub release notes; 0.1.0-beta on `v4.0.0rc5` remains the last live
-  qualification recorded in the repository). Replaced "beta" status wording with the README's
-  "still maturing" and "under active development". Auto mode is labeled experimental, a research and
+  qualification recorded in the repository). Kept beta status at the operator's direction although
+  the README dropped the word, and added the README's "under active development" wording to the
+  `index` warning. Auto mode is labeled experimental, a research and
   evaluation capability not run live on 0.3.0, on `index`, `understand/authority-modes`,
   `guides/using-chat`, and `understand/limitations`.
 - Supervised mode: added "Bounded supervised steps" to `understand/authority-modes` (limits and
