@@ -35,11 +35,39 @@ precondition. No command marks a row `achieved` without verified evidence, so th
 records your optimism as fact. The model is held to the same rule: it can read the ledger and
 submit Mythic evidence IDs for verification, but it never writes rows.
 
+Hashes and tickets found in task output or in Mythic's credential store are recorded as credential
+material. A material row proves possession, not a working credential, and does not satisfy a
+capability that needs one.
+
+A proven row stays in the ledger as history. When a later observation contradicts it, Sage adds a
+"no longer holds" marker with that evidence instead of rewriting the row: for example, when a later
+complete read of the same directory object contradicts a directory change, or when a derived row's
+premise no longer holds.
+
+## What supervised steps record
+
+The ledger tracks progress, not every task. In supervised mode, each step records what it proved:
+
+- A new callback, on a new host or as a new user, records a session on that host.
+- A callback at high or SYSTEM integrity, or one whose integrity rises after a step's task on it,
+  records admin or SYSTEM on that host.
+- A credential whose source task belongs to the step is recorded by account and realm, never with
+  its secret.
+
+A callback gain is credited to the Sage task issued before that callback first checked in, within
+10 minutes (`SAGE_STEP_LEDGER_ATTRIBUTION_SECONDS`), so a payload that checks in after its step
+ended is still credited. Each row is proven against Mythic's own callback record or the
+credential's source task, and a gain credited to a task that ended in error stays unproven. Losing a
+callback or changing a token records nothing, and a gain that no Sage task can be credited with is
+reported but not recorded. Autonomous mode and conversation requests do not record step gains.
+
 ## Recording completed task work
 
 Not every gain starts as a Sage run. When a conversation or supervised turn ends, Sage reconciles
 the operation's completed Mythic tasks from every callback and every issuer, and records what the
-task, credential, and callback verifiers prove. Failed attempts stay in Mythic's task history.
+task, credential, and callback verifiers prove. Failed attempts stay in Mythic's task history. Work
+done through generic commands such as `powershell` or `shell` leaves no row unless a verifier
+recognizes its effect, so a short ledger does not mean nothing was gained.
 
 To verify specific evidence yourself, cite Mythic task display IDs, credential IDs, or file IDs:
 

@@ -9,20 +9,160 @@ authoritative. Sage follows Semantic Versioning; before 1.0, behavior and config
 between minor releases. For what each release was validated against, see
 [Limitations and validated configuration](/understand/limitations).
 
-## Unreleased
+## v0.3.0 (2026-11-11)
 
-Changes on Sage's main branch since `v0.2.0`, not yet in a tagged release:
+Sage 0.3.0 bounds and scopes each supervised step, reads every step's results from Mythic rather
+than from the specialist's summary, and records proven progress in the Engagement State Ledger.
 
-- `mythic-cli install github` pulls the published release image from GitHub Container Registry
-  instead of building Sage locally. Set `sage_use_build_context` to `true` in Mythic's
-  configuration to keep building from source.
+### Added
+
+- **Bounded supervised steps.** Each specialist step returns control to the Supervisor after its
+  one guarded action, or earlier at 20 tool calls, 10 minutes of active time, or three consecutive
+  tool errors, with a typed outcome for the Supervisor. Set the limits with
+  `SAGE_STEP_MAX_TOOL_CALLS`, `SAGE_STEP_MAX_ACTIVE_SECONDS`, and
+  `SAGE_STEP_MAX_CONSECUTIVE_ERRORS`. See
+  [Bounded supervised steps](/understand/authority-modes#bounded-supervised-steps).
+- **Step results read from Mythic.** A step's outcome lists each task it issued with its state,
+  command, callback, and output row count; the credentials linked to those tasks, by account,
+  realm, and type only; and the graph reads it made. Every issued task reaches the Supervisor with
+  an output excerpt or a stated reason it has none.
+- **Checked delegation briefs.** A supervised delegation to the Mythic Operator names its callback,
+  targets, expected result, and what its one guarded action may use, and Sage checks that brief
+  before the specialist starts. When a step is scoped to graph collection alone, Sage proposes the
+  `collect-graph` call itself.
+- **Ledger rows from supervised steps.** New callbacks, integrity gains, and credentials from a
+  step's tasks are recorded in the Engagement State Ledger, each proven against Mythic's own
+  records. See
+  [What supervised steps record](/guides/engagement-ledger#what-supervised-steps-record).
+- **Ledger in every model call.** The Supervisor and Mythic Operator see a fresh, bounded view of
+  the Engagement State Ledger on every model call in every mode, with the same row numbers as
+  `/state`. Two model tools, `read_engagement_state` and `submit_engagement_evidence`, read rows and
+  submit Mythic evidence to the verifiers; the model never writes rows itself.
+- **Reconciliation at turn end.** When a conversation or supervised turn ends, Sage reconciles the
+  operation's completed Mythic tasks from every callback and every issuer, so work you ran by hand
+  is recorded once a verifier proves it. `/state reconcile` also accepts `file:<id>` citations.
+- **Derived rows.** A rule in code can record an achieved row derived from rows that already have
+  proof, naming its rule and premise rows. A model's inference never counts.
+- **Graph context before routing.** In supervised and conversation mode, a request to reach
+  privilege on or take control of a target consults the BloodHound graph before Sage chooses a
+  specialist. The read never blocks a request.
+- **Staged-tool inventory.** `list_staged_tools` and `/tools staged` list the binaries in the tool
+  drop zone with their type, architecture, matching TTPs, and whether Mythic already holds them.
+  See [Tool drop zone](/reference/tools-and-capabilities#tool-drop-zone).
+- The Supervisor can list callbacks itself in conversation and supervised mode, and `/state help`
+  shows `/state` usage without reading the ledger.
+
+### Changed
+
+- **Engagement State Ledger.** The ledger is one shared store per Mythic operation in `sage.db`,
+  read fresh by every chat channel, with permanent row numbers. Rows are `achieved` or `pending`;
+  hashes and tickets are recorded as credential material, which proves possession but not a working
+  credential. `/state remove` records a retraction instead of deleting, `/state restore` and
+  `/state invalidate` are new, and `/state wipe` retracts without deleting or renumbering. See
+  [The Engagement State Ledger](/guides/engagement-ledger).
+- **Bot token scopes.** Tasking tools are enabled by `task.write` instead of `callback.write`,
+  `ingest_collection` needs `file.read`, and `sandbox_exec`, `/sandbox`, and `download_tool` need
+  no Mythic scope. Sage's declared channel scopes now list everything it uses. See
+  [Minimum bot token scopes](/reference/tools-and-capabilities#minimum-bot-token-scopes).
+- **Staging needs no approval.** `ensure_tool_uploaded` writes only Mythic's operation file store,
+  so it no longer asks for its own approval in supervised mode. The command that later runs the
+  tool still needs approval, and staging stays unavailable in conversation mode.
+- **Graph collection first.** A supervised objective request whose graph is empty, or lacks a
+  domain the objective names, starts with a `collect-graph` proposal. A supervised request that
+  asks only to collect one domain's BloodHound graph runs as Sage's `collect-graph` procedure.
+- **BloodHound ingest is verified.** Sage counts a collection only when BloodHound reports its
+  ingest job complete, which needs a status operation the pinned MCP lacks; the image now applies
+  Sage's ingest-status patch to it, and `/bloodhound` reports connection and ingest readiness
+  separately. See [Ingest readiness](/guides/bloodhound#ingest-readiness).
+- **Release images.** A push to `main` publishes the version image, for example
+  `ghcr.io/mythicagents/sage:0.3.0`, before the release tag. The annotated `v<version>` tag records
+  that image's manifest digest, and a final release points its minor reference (`:0.3`) at the same
+  manifest. `mythic-cli install github` pulls the published image instead of building Sage locally;
+  set `sage_use_build_context` to `true` in Mythic's configuration to keep building from source.
+- **Fresh worker transcripts.** Each supervised worker delegation starts with its own transcript;
+  what a later step needs arrives as Sage's data rather than the earlier conversation.
+- **Domain names.** Sage learns each domain's FQDN from the operation's own evidence.
+  `SAGE_ENGAGEMENT_NETBIOS_MAP` is now needed only to turn learning off or to pin names.
+
+### Fixed
+
+- Conversation mode with Autonomous Solve on no longer switches itself to autonomous mode. It
+  stays read-only, and Sage says once in the chat that the toggle was ignored.
+- Max Steps caps each chat request instead of adding up across every request in a channel.
 - The container no longer runs Sage as root. It runs as the owner of the installed service
-  directory, so a later `mythic-cli install` no longer fails on root-owned files. The first start
-  hands back root-owned files left by earlier versions.
+  directory, so a later `mythic-cli install` no longer fails on root-owned files, and the first
+  start hands back root-owned files left by earlier versions.
+- The Phoenix UI on port 6006 no longer freezes in the container. Sending the Sage process
+  `SIGUSR1` writes every thread's stack to the log.
 - The startup version banner appears in the container log at Mythic's default log level.
 - A request's final message records how the request ended (`completed`, `blocked`, `checkpoint`,
-  `stopped`, `cancelled`, or `error`) as `turn_outcome` in its metadata. Mythic stores only
-  `complete`, `error`, and `cancelled` as a request status, so this field gives the real ending.
+  `stopped`, `cancelled`, or `error`) as `turn_outcome` in its metadata, because Mythic stores
+  only `complete`, `error`, and `cancelled` as a request status.
+- A deliberate wait of 300 seconds or more, such as waiting for a Group Policy refresh, no longer
+  fails with an idle timeout.
+- An approved supervised graph collection collects even when the same identity and scope already
+  have a verified graph, and the approval card says so.
+- After you approve a card, the request's final report appears once, and a proposal that ends in a
+  refusal is shown once.
+- Answered requests no longer end in a "no progress" stop, and a step that already answered is not
+  re-sent until the stop.
+- The BloodHound attack-path probe no longer reports "no path" when it cannot place the controlled
+  identity or the objective domain in the graph.
+- Approval cards for raw tasks show the intended effect with its target filled in.
+- The BloodHound setup steps and the not-connected message give BloodHound CE's current path for
+  creating an API token.
+
+The [Sage changelog](https://github.com/MythicAgents/Sage/blob/main/CHANGELOG.md) lists every fix.
+
+### Security
+
+- OpenTelemetry moves from 1.44.0 to 1.45.1, clearing the advisory against `opentelemetry-api`
+  1.44.0 listed under 0.2.0's known issues.
+
+### Upgrade
+
+- Stop Sage and import existing `.sage_engagement/state_*.json` ledgers with the migration script.
+  Sage reports the Engagement State Ledger as unavailable until every legacy file is imported or
+  explicitly excluded. See
+  [Importing a ledger from an earlier release](/configuration/runtime-state#importing-a-ledger-from-an-earlier-release).
+- Domain-name learning is on by default. To keep reported NetBIOS names unchanged, set
+  `SAGE_ENGAGEMENT_NETBIOS_MAP` to `off`.
+- Grant `task.write` to channel tokens that relied on `callback.write` for tasking.
+
+### Known issues
+
+- macOS Docker Desktop and OrbStack still need the database override described in
+  [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
+- Some reported dependency vulnerabilities remain because `mythic-container` and `arize-phoenix`
+  pin the affected packages.
+- If Sage stops after issuing an approved supervised action but before it records the result, the
+  resumed request can issue that action again. Check the task list in Mythic before you approve the
+  same action after a restart.
+- When the Supervisor scopes a step to a real catalog procedure that does not serve the request,
+  the request ends instead of re-scoping.
+- The Supervisor does not yet plan supervised steps as bounded subgoals, so a step can run until one
+  of its limits or an error.
+- A request can propose a BloodHound collection again after a successful ingest on the same
+  callback and scope; reject the repeat. An "already achieved" verdict can be followed by empty
+  delegations that end in the no-progress stop.
+- A task whose completion function failed after the agent answered, or whose output arrives only at
+  handback, can end the request as "not terminal". The tasks and their output in Mythic are the
+  record of what ran.
+- A request's final message can appear above earlier sub-agent panels, and the internal
+  delegation envelope can appear in the visible transcript.
+- The ledger records only gains that a verifier or a rule in code proves.
+- A parent-domain forge backed by a child-domain source can skip the parent's replication grant,
+  and a krbtgt reference beyond the top-ranked key is refused.
+- Auto mode was not run live on this release.
+
+### Validation
+
+The offline suite, the repository-boundary guards, and the repo-hygiene checks pass, and the
+supervised changes are covered by scripted tests of the assembled chat path. The release
+qualification runs once, in supervised mode, on a locally built image against Mythic `v4.0.8`; see
+[Limitations and validated configuration](/understand/limitations#the-validated-configuration). Its
+result is reported in the 0.3.0 GitHub release notes and covers that one configuration and
+objective.
 
 ## v0.2.0 (2026-10-23)
 
@@ -74,7 +214,7 @@ published, versioned container image.
 - Some reported dependency vulnerabilities remain because upstream packages pin the affected
   versions.
 - Runtime state written as root can block a later reinstall by a non-root user; fixed in
-  Unreleased.
+  v0.3.0.
 
 ### Validation
 

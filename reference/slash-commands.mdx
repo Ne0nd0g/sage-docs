@@ -19,11 +19,12 @@ noted).
 | `/mode conversation\|supervised\|auto` | Switch the channel's mode |
 | `/list` | List active Sage chat sessions |
 | `/tools` | List Sage's public Mythic tool functions, descriptions, and access requirements: a deterministic inventory, no model call |
+| `/tools staged` | List the binaries in Sage's [tool drop zone](/reference/tools-and-capabilities#tool-drop-zone): sha256, type, architecture, matching TTPs, and whether Mythic already holds them |
 | `/report [identity]` | Show retained identity/membership observations shared across assisted chats in this operation engagement, unknown access prerequisites, and next checks: one bounded check, no new task |
 | `/stop` | Cooperatively stop the running agent on this channel |
-| `/bloodhound [force] [dir]` | Connect, report, or rebind the BloodHound MCP; see [BloodHound](/guides/bloodhound) |
+| `/bloodhound [force] [dir]` | Connect, report, or rebind the BloodHound MCP, reporting connection and ingest readiness separately; see [BloodHound](/guides/bloodhound) |
 | `/mcp <list\|tools\|call\|connect\|disconnect\|policy>` | Manage MCP servers; see [Connecting MCP servers](/guides/mcp-servers) |
-| `/sandbox [shell\|python] <code>` | Run an isolated local snippet (requires the `callback.write` scope) |
+| `/sandbox [shell\|python] <code>` | Run an isolated local snippet (no network or host mounts; needs no Mythic scope) |
 
 ## Watcher commands
 

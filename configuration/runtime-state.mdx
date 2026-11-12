@@ -82,9 +82,9 @@ Move `sage.db` together with its `-wal` and `-shm` sidecars (the `sage.db*` glob
 uncheckpointed writes are lost. If you redirected any path with the overrides above, archive from
 that location instead.
 
-Sage v0.2.0 writes some of this state as root, so the `mv` may need `sudo`. Later builds run the
-container as the owner of the service directory and hand earlier root-owned files back on first
-start.
+Sage v0.2.0 writes some of this state as root, so the `mv` may need `sudo`. From v0.3.0, the
+container runs Sage as the owner of the service directory and hands earlier root-owned files back
+on first start.
 
 A reinstall replaces the whole service directory, so archive this state outside
 `InstalledServices/sage/` before running `mythic-cli install` again.

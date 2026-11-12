@@ -9,12 +9,12 @@ re-verification pass of every affected page.
 
 | Field | Value |
 |---|---|
-| Verified against mirror commit | `bd85f84c7d9bb0ae540be3f6b10687fc05242435` |
-| Closest tag | `v0.2.0` (HEAD is 4 commits after it; inside no tag) |
-| Tags before that point | `v0.1.0-alpha`, `v0.1.0-beta` |
-| Verified on | 2026-10-26 |
-| Mirror working tree | clean at verification time |
-| Subject to the beta posture | yes: authorized-use-only, beta status, Mythic version pin, and autonomous-agent risk language in the Sage README must survive every sync |
+| Verified against mirror commit | `95b3c99e3056b2e874520bbb959beff347889d76` |
+| Closest tag | `v0.3.0` (exactly this commit; annotated tag object `da0d595`) |
+| Tags before that point | `v0.1.0-alpha`, `v0.1.0-beta`, `v0.2.0` |
+| Verified on | 2026-11-12 |
+| Mirror working tree | dirty at verification time (unrelated uncommitted work); every file was read from the tag with `git show`, never from the working tree |
+| Subject to the maturity posture | yes: authorized-use-only, maturity status, Mythic version qualification, and autonomous-agent risk language in the Sage README must survive every sync. At `v0.3.0` the README dropped the "beta" label for "still maturing" and "under active development"; the docs follow that wording |
 
 ## Source map (page groups to Sage files)
 
@@ -23,23 +23,23 @@ page-level line mapping is done during verification, not recorded here.
 
 | Docs pages | Sage paths they draw from |
 |---|---|
-| `index`, `quickstart` | `README.md`, `config.json`, `docs/releases/`, `docs/SECURITY_AND_DATA_HANDLING.md` |
-| `understand/**` | `README.md`, `docs/SECURITY_AND_DATA_HANDLING.md`, `docs/architecture/`, `Payload_Type/sage/sage_chat/` |
-| `guides/using-chat`, `understand/authority-modes` | `README.md`, `Payload_Type/sage/sage_chat/` (`hitl.py`, `slash.py`, `config.py`), `Payload_Type/sage/prompts/` |
+| `index`, `quickstart` | `README.md`, `config.json`, `docs/releases/`, `docs/SECURITY_AND_DATA_HANDLING.md`, `CHANGELOG.md` (Validation) |
+| `understand/**` | `README.md`, `docs/SECURITY_AND_DATA_HANDLING.md`, `docs/architecture/`, `Payload_Type/sage/sage_chat/`, `CHANGELOG.md` (Known issues, Validation) |
+| `guides/using-chat`, `understand/authority-modes` | `README.md`, `Payload_Type/sage/sage_chat/` (`hitl.py`, `slash.py`, `config.py`), `Payload_Type/sage/prompts/`, `Payload_Type/sage/ai/langgraph/` (`step_bounds.py`, `handoff_brief.py`, `request_contract.py`; supervised step limits, delegation briefs, Autonomous Solve in conversation) |
 | `guides/chat-config` | `Payload_Type/sage/sage_chat/models.py` (config options, channel token scopes), Mythic `New AI Chat` dialog |
-| `guides/bloodhound` | `README.md` (Requirements, BloodHound), `docs/configuration/BLOODHOUND.md`, `Payload_Type/sage/Dockerfile` (MCP pin, baked dir), `Payload_Type/sage/ai/bloodhound_config.py` (URL parsing, required tools, diagnostics), `Payload_Type/sage/sage_chat/config.py` (`build_bloodhound_env`), `Payload_Type/sage/sage_chat/slash.py` (`/bloodhound`), `Payload_Type/sage/mcp_tool_policy.json`; Mythic `Mythic_CLI` (installed services use host networking) |
+| `guides/bloodhound` | `README.md` (Requirements, BloodHound, Ingest readiness), `docs/configuration/BLOODHOUND.md`, `Payload_Type/sage/Dockerfile` (MCP pin, ingest-status patch, baked dir, `UV_NO_SYNC`), `Payload_Type/sage/patches/`, `Payload_Type/sage/ai/bloodhound_config.py` (URL parsing, required tools, diagnostics, ingest contract and job status), `Payload_Type/sage/ai/mcp.py` (`bloodhound_run_args`), `Payload_Type/sage/sage_chat/config.py` (`build_bloodhound_env`), `Payload_Type/sage/sage_chat/slash.py` (`/bloodhound`), `Payload_Type/sage/mcp_tool_policy.json`; Mythic `Mythic_CLI` (installed services use host networking) |
 | `understand/limitations` | `README.md` (Requirements, Limitations), `CHANGELOG.md` (Validation), `docs/releases/` |
 | `guides/troubleshooting` | Error strings and behaviors drawn from the pages it links; re-check whenever those pages change |
 | `reference/release-notes` | `CHANGELOG.md`, `docs/releases/` |
 | `guides/mcp-servers` | `Payload_Type/sage/mcp_tool_policy.json`, Sage MCP connect/classification code |
 | `guides/custom-tls` | `Payload_Type/sage/ssl_bootstrap.py`, `Payload_Type/sage/certs/`, `Payload_Type/sage/ai/langgraph/mythic_tools.py` (Mythic login and registered-file download), `mythic` client package (`mythic_utilities.py` TLS handling) |
 | `guides/findings-watcher` | `Payload_Type/sage/sage_chat/` (findings watcher) |
-| `guides/engagement-ledger` | `Payload_Type/sage/ai/langgraph/` (`engagement_store.py`, `engagement_ledger.py`, `engagement_state.py`, `proof_boundary.py`, `effect_rules.py`, and the reconcile and evidence tools in `mythic_tools.py`), `Payload_Type/sage/sage_chat/slash.py` (`/state`), `Payload_Type/sage/sage_chat/` (operation memory, report identity/observations), `Payload_Type/sage/runtime_db.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py` |
-| `configuration/environment` | `config.json`, `Payload_Type/sage/dotenv_bootstrap.py`, `Payload_Type/sage/config.py` |
+| `guides/engagement-ledger` | `Payload_Type/sage/ai/langgraph/` (`engagement_store.py`, `engagement_ledger.py`, `engagement_state.py`, `proof_boundary.py`, `effect_rules.py`, `step_ledger.py` (supervised step gains, attribution window), and the reconcile and evidence tools in `mythic_tools.py`), `Payload_Type/sage/sage_chat/slash.py` (`/state`), `Payload_Type/sage/sage_chat/` (operation memory, report identity/observations), `Payload_Type/sage/runtime_db.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py` |
+| `configuration/environment` | `config.json`, `Payload_Type/sage/dotenv_bootstrap.py`, `Payload_Type/sage/config.py`, `Payload_Type/sage/.env` (container-wide settings), `Payload_Type/sage/sage_chat/models.py` (option text), `Payload_Type/sage/ai/langgraph/step_bounds.py`, `Payload_Type/sage/ai/langgraph/step_ledger.py` |
 | `configuration/runtime-state` | `Payload_Type/sage/runtime_db.py`, `Payload_Type/sage/ai/langgraph/engagement_store.py` (ledger tables, legacy-file guard), `Payload_Type/sage/ai/langgraph/engagement_ledger.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py`, `Payload_Type/sage/container/`, Mythic CLI (`stop`/`start`) |
 | `configuration/run-from-source` | `README.md` (Requirements, Local development, `.env` loading), `Payload_Type/sage/main.py`, `Payload_Type/sage/dotenv_bootstrap.py` (`.env.local` then `.env`), `Payload_Type/sage/runtime_db.py` (default `sage.db` path), `Payload_Type/sage/requirements*.txt`, `constraints.txt`, the repo's local restart script (env defaults it applies); `mythic-container` `logging.py`/`config.py` (`DEBUG_LEVEL`); Mythic `Mythic_CLI` (`debug_level`, `stop`/`start`/`restart`/`remove`/`add`/`logs`, loopback port bindings) |
-| `configuration/observability` | `skills/phoenix-traces/`, `Payload_Type/sage/container/` |
-| `reference/tools-and-capabilities` | `docs/reference/TOOLS_AND_CAPABILITIES.md`, `Payload_Type/sage/tools/`, `Payload_Type/sage/ai/langgraph/capabilities.py` (capability catalog), `Payload_Type/sage/ai/langgraph/mythic_capability_adapter.py` (payload profiles), `Payload_Type/sage/ai/langgraph/mythic_tools.py` (tool safety, scopes, discovery and tasking), `Payload_Type/sage/ai/langgraph/command_parameter_schema.py`, `Payload_Type/sage/ai/langgraph/command_builder.py`, `Payload_Type/sage/ai/comparison_tool_surface.py` (agent-visible tool lists), `Payload_Type/sage/prompts/` (frontmatter tool lists) |
+| `configuration/observability` | `skills/phoenix-traces/`, `Payload_Type/sage/container/`, `Payload_Type/sage/ai/phoenix_tracing.py`, `Payload_Type/sage/ai/langgraph/kernel_tracing.py`, `Payload_Type/sage/main.py` (tracer registration, `SIGUSR1` stack dump) |
+| `reference/tools-and-capabilities` | `docs/reference/TOOLS_AND_CAPABILITIES.md`, `Payload_Type/sage/tools/`, `Payload_Type/sage/.dockerignore` (drop zone excluded from images), `Payload_Type/sage/ai/langgraph/staged_tools.py` (`list_staged_tools`), `Payload_Type/sage/ai/langgraph/capabilities.py` (capability catalog), `Payload_Type/sage/sage_chat/models.py` (declared channel scopes), `Payload_Type/sage/ai/langgraph/operation_context.py` (event-log engagement marker), `Payload_Type/sage/ai/langgraph/model.py` (Supervisor tool binding), `Payload_Type/sage/ai/langgraph/mythic_capability_adapter.py` (payload profiles), `Payload_Type/sage/ai/langgraph/mythic_tools.py` (tool safety, scopes, discovery and tasking), `Payload_Type/sage/ai/langgraph/command_parameter_schema.py`, `Payload_Type/sage/ai/langgraph/command_builder.py`, `Payload_Type/sage/ai/comparison_tool_surface.py` (agent-visible tool lists), `Payload_Type/sage/prompts/` (frontmatter tool lists) |
 | `reference/slash-commands` | `Payload_Type/sage/sage_chat/slash.py`, `Payload_Type/sage/prompts/` |
 
 ## What changed since the last full pass
@@ -142,3 +142,60 @@ Engagement State Ledger (2026-11-09), ledger content on eleven pages, against Sa
   the shipping columns (#, Hop, Effect, Status, Task, CB) and current correction commands, cropped to
   the ledger from a supervised run with six achieved hops. Its caption describes that capture.
 - The recorded baseline above was not moved: only the ledger content was re-verified.
+
+Sage v0.3.0 sync (2026-11-12), full pass, against tag `v0.3.0` at `95b3c99` (baseline moved from
+`bd85f84`, which is an ancestor of the tag; 124 commits reviewed through `--stat`, the `v0.3.0`
+CHANGELOG section, and the README diff, with full diffs for every mapped file):
+
+- Posture: carried the README's new Mythic target into `index`, `quickstart`,
+  `configuration/run-from-source`, and `understand/limitations` (0.3.0 qualification on Mythic
+  `v4.0.8`, reported in the GitHub release notes; 0.1.0-beta on `v4.0.0rc5` remains the last live
+  qualification recorded in the repository). Replaced "beta" status wording with the README's
+  "still maturing" and "under active development". Auto mode is labeled experimental, a research and
+  evaluation capability not run live on 0.3.0, on `index`, `understand/authority-modes`,
+  `guides/using-chat`, and `understand/limitations`.
+- Supervised mode: added "Bounded supervised steps" to `understand/authority-modes` (limits and
+  defaults from `step_bounds.py` `StepBounds`, brief checks and typed outcomes from the CHANGELOG),
+  the staging class, the pre-routing graph read, the first `collect-graph` proposal, and Autonomous
+  Solve being ignored in conversation (`sage_chat/config.py` `autonomous_solve_ignored`). Supervisor
+  role and step summary on `understand/how-sage-works`; Supervisor tool binding from `model.py`
+  (`list_callbacks` outside auto, the two ledger tools in every mode).
+- Scopes: tool table and "Minimum bot token scopes" rebuilt from `SCOPE_REQUIREMENTS`
+  (`task.write` for tasking, `file.read` for `ingest_collection`, no scope for `sandbox_exec` and
+  `download_tool`) and `_CHANNEL_TOKEN_SCOPES` (adds `operator.read` and `eventlog.write`; the
+  latter backs the engagement marker in `operation_context.py`). Kept "a missing read scope returns
+  empty results": Mythic's `hasura_claims.go` sets an absent scope's claim to `0` and the table
+  filters compare against it, at both `a9add7f` and the `Mythic-v4.0.0` branch head (version 4.0.9)
+  checked on 2026-11-12. The upstream README now says Mythic "rejects" such a query; flagged
+  upstream rather than followed. Also updated `authority-modes`, `troubleshooting`,
+  `slash-commands`, `chat-config`, and `quickstart`.
+- Tools: added `list_staged_tools`, `read_engagement_state`, and `submit_engagement_evidence`
+  (35 agent-visible tools: `comparison_tool_surface.py` plus `sandbox_exec`); `ensure_tool_uploaded`
+  is `TOOL_SAFETY_STAGING`. Capability table rebuilt from the new `CapabilityDoc` catalog (same 15
+  names; effect and requirement replace the one-line intent). Drop-zone inventory from
+  `TOOLS_AND_CAPABILITIES.md` and `.dockerignore`.
+- BloodHound: ingest readiness (README "Ingest readiness", `bloodhound_config.py` ingest contract,
+  Dockerfile patch step, `/bloodhound` Connection and Ingest output in `slash.py`), patched custom
+  checkouts, and `uv run --no-sync` in the image (`mcp.py` `bloodhound_run_args`). The upstream
+  `BLOODHOUND.md` still says a custom checkout syncs on first connect, which `--no-sync` contradicts
+  inside the container; flagged upstream. The ingest-status change (`d14b225`) is not in the 0.3.0
+  CHANGELOG; the docs release notes include it.
+- Ledger: added "What supervised steps record" (`step_ledger.py`, CHANGELOG), credential material,
+  and automatic "no longer holds" markers to `guides/engagement-ledger`. Ledger files changed since
+  the `8d68472` pass only in `engagement_state.py` and `proof_boundary.py` (FQDN learning, DCSync
+  material for forging); no page claim changed.
+- Configuration: per-request `max_steps`, the `autonomous_solve` note, and a "Container-wide
+  settings" table (`SAGE_STEP_*`, `SAGE_ENGAGEMENT_NETBIOS_MAP`, from `.env`) on
+  `configuration/environment`; `v0.3.0` ownership wording on `runtime-state` and `troubleshooting`;
+  corrected the run-from-source banner claim (`_version.announce_startup` prints at any level; only
+  the `.env` names log at `info`).
+- `reference/release-notes`: replaced "Unreleased" with a `v0.3.0` section adapted from the
+  CHANGELOG, leaving out evaluation-plane and maintainer-tooling entries.
+- Confirmed untouched: `understand/security-and-data-handling` (security document unchanged),
+  `guides/mcp-servers` (policy file and `/mcp` unchanged), `guides/custom-tls` (`ssl_bootstrap.py`,
+  registered-file download TLS, and `mythic` pins unchanged), `guides/findings-watcher` (watcher
+  and Slack modules unchanged), `configuration/observability` (span names, `SAGE_KERNEL_TRACING`,
+  and `phoenix_verdict.py` unchanged; tracer moved off the global provider with no change to what is
+  traced).
+- No GitHub release object existed for `v0.3.0` at verification time, so no measured
+  qualification result is quoted; pages state what the README says the release notes report.

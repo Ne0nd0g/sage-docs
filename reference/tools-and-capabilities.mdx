@@ -49,8 +49,8 @@ an adapter is still tasked through the discovery path above.
 
 | Payload type | Adapter |
 |---|---|
-| Apollo | Yes. Apollo `v0.1.0-rc1` is the beta-validated payload; see [Limitations](/understand/limitations). |
-| Merlin | Yes, including graph collection. Not validated for this beta. |
+| Apollo | Yes. Apollo `v0.1.0-rc1` is the last live-validated payload (0.1.0-beta); see [Limitations](/understand/limitations). |
+| Merlin | Yes, including graph collection. Not validated. |
 
 The adapters matter most for the [capability layer](#the-capability-layer), whose packaged
 attack-chain steps encode payload-specific command forms. Automated graph collection
@@ -59,15 +59,19 @@ through ordinary tasking and ingest the result with `ingest_collection`.
 
 ## Tools
 
-Every tool the Sage agents can call is either **read-only** or **guarded**, never both. Read-only
-tools never prompt for approval and cannot change target or Mythic state. Guarded tools are
-approval-gated in supervised mode and denied in conversation mode. Sage also checks each guarded
-tool against a preflight scope on your channel token and disables the tool up front when the scope
-is missing, rather than letting it fail mid-run. Every tool carries its classification in source,
-CI fails if one is missing, and an unclassified method defaults to guarded at runtime.
+Every tool the Sage agents can call is **read-only**, **guarded**, or **staging**. Read-only tools
+never prompt for approval and cannot change target state. Guarded tools are approval-gated in
+supervised mode and denied in conversation mode, and only they can change target state. The one
+staging tool, `ensure_tool_uploaded`, writes only Mythic's operation file store and reaches no
+callback: it needs no approval in supervised mode and is denied in conversation mode. Every tool
+carries its classification in source, CI fails if one is missing, and an unclassified method
+defaults to guarded at runtime.
 
-The preflight scope is Sage's own gate. The Mythic API calls behind a tool can need other scopes,
-including read scopes for read-only tools; see
+Sage also checks each guarded or staging tool that calls Mythic against a preflight scope on your
+channel token, and disables the tool up front when the scope is missing rather than letting it fail
+mid-run. Tools that run locally and make no Mythic call (`sandbox_exec`, `download_tool`) have no
+preflight scope; approval still applies to them. The Mythic API calls behind a tool can need other
+scopes, including read scopes for read-only tools; see
 [Minimum bot token scopes](#minimum-bot-token-scopes) for the full set.
 
 | Tool | What it does | Class | Preflight scope |
@@ -80,22 +84,25 @@ including read scopes for read-only tools; see
 | `list_callbacks` | Per-callback status and liveness for every active callback | Read-only | None |
 | `get_task_history_for_callback` | A callback's full task history as JSON | Read-only | None |
 | `get_all_task_output_by_task_id` | All output for a Mythic task ID | Read-only | None |
-| `issue_task_and_waitfor_task_output` | Issue a command on a callback and wait for its output | Guarded | `callback.write` |
+| `issue_task_and_waitfor_task_output` | Issue a command on a callback and wait for its output | Guarded | `task.write` |
 | `wait_for_seconds` | Bounded Sage-side pause, with no tasking | Read-only | None |
 | `list_open_artifacts` | Artifacts this run created that are not yet cleaned up | Read-only | None |
 | `get_operations` | List all Mythic operations | Read-only | None |
 | `get_all_uploaded_files` | List all files uploaded to Mythic | Read-only | None |
-| `upload_file_by_file_uuid` | Upload a Mythic-stored file to a callback through the agent's upload command | Guarded | `callback.write` |
-| `ensure_tool_uploaded` | Ensure a tool binary is in Mythic's file store, uploading it from the drop zone if missing | Guarded | `file.write` |
-| `download_tool` | Fetch a tool binary from its pinned, sha256-verified TTP source into the drop zone | Guarded | `file.write` |
+| `upload_file_by_file_uuid` | Upload a Mythic-stored file to a callback through the agent's upload command | Guarded | `task.write` |
+| `list_staged_tools` | List the binaries in the drop zone, or every variant of one tool: type, architecture, matching TTPs, and Mythic presence | Read-only | None |
+| `ensure_tool_uploaded` | Ensure a tool binary is in Mythic's file store, uploading it from the drop zone if missing | Staging | `file.write` |
+| `download_tool` | Fetch a tool binary from its pinned, sha256-verified TTP source into the drop zone | Guarded | None (local only) |
 | `read_credentials` | Read the operation's Mythic credential store (can expose raw secrets) | Read-only | None |
 | `add_credential` | Add a credential to the operation's Mythic credential store | Guarded | `credential.write` |
 | `get_ttp_guidance` | Match a plain-language goal to the TTP library, tailored to the callback's agent | Read-only | None |
 | `get_ttp_full_reference` | The full reference section for a TTP | Read-only | None |
 | `list_ttp_categories` | The TTP library grouped by category | Read-only | None |
 | `build_capability_commands` | Build the Mythic parameters for a capability action without running it | Read-only | None |
-| `execute_capability` | Run one capability action, verify it, and record only proven effects | Guarded | `callback.write` |
-| `ingest_collection` | Ingest a SharpHound or AzureHound collection into BloodHound | Guarded | `callback.write` |
+| `execute_capability` | Run one capability action, verify it, and record only proven effects | Guarded | `task.write` |
+| `ingest_collection` | Ingest a SharpHound or AzureHound collection into BloodHound | Guarded | `file.read` |
+| `read_engagement_state` | Read [Engagement State Ledger](/guides/engagement-ledger) rows by number or page | Read-only | None |
+| `submit_engagement_evidence` | Send up to 20 Mythic task, `cred:<id>`, or `file:<id>` citations to the verifiers `/state reconcile` uses; the model never writes rows itself | Read-only | None |
 | `get_all_payloads` | Information about all built payloads | Read-only | None |
 | `get_c2_profiles_for_payload` | C2 profiles available for a payload type | Read-only | None |
 | `get_callback_c2_config` | Configured C2 parameter values for a live callback | Read-only | None |
@@ -103,13 +110,14 @@ including read scopes for read-only tools; see
 | `create_payload` | Create a new Mythic payload | Guarded | `payload.write` |
 | `download_payload` | Download a built payload for reuse; returns a Mythic file reference | Read-only | None |
 | `delete_payload` | Soft-delete a payload after verifying it has no callbacks | Guarded | `payload.write` |
-| `sandbox_exec` | Run untrusted code in an isolated, ephemeral sandbox container | Guarded | `callback.write` |
+| `sandbox_exec` | Run untrusted code in an isolated, ephemeral sandbox container | Guarded | None (local only) |
 
 Each agent receives only its share of this list: the Mythic Operator handles callbacks, tasking,
-files, credentials, tradecraft, and capabilities; the Mythic Payload agent handles payloads and C2
-profiles; and the Sandbox agent holds `sandbox_exec`. The discovery tools are available to both
-Mythic agents. Type `/tools` in chat for the current list; it is deterministic and makes no model
-call.
+files, staged tools, credentials, tradecraft, capabilities, and the two ledger tools; the Mythic
+Payload agent handles payloads and C2 profiles; and the Sandbox agent holds `sandbox_exec`. The
+discovery tools are available to both Mythic agents. The Supervisor can call the two ledger tools
+in every mode, and `list_callbacks` in conversation and supervised mode. Type `/tools` in chat for
+the current list; it is deterministic and makes no model call.
 
 BloodHound graph tools come from the external BloodHound MCP server, not from Sage's own code. See
 [BloodHound](/guides/bloodhound) and [MCP servers](/guides/mcp-servers).
@@ -124,11 +132,17 @@ includes its `.read` scope, and a token can only grant scopes it already holds. 
 for how to create a scoped token; the full scope catalog is in
 [`scopes.go`](https://github.com/its-a-feature/Mythic/blob/a9add7f1f62f5b2098d1f0eb0306c4b15b8cd916/mythic-docker/src/authentication/mythicjwt/scopes.go).
 
+Sage declares the full set it uses: `chat-ai.write`, `apitoken.write`, `callback.read`,
+`response.read`, `operation.read`, `operator.read`, `task.write`, `file.write`, `payload.write`,
+`credential.write`, and `eventlog.write`. Mythic does not enforce that list. A narrower token still
+runs, with the tools whose scopes it lacks switched off and the reads it lacks returning nothing.
+
 ### Baseline
 
-`chat-ai.write` and `apitoken.write` are hard requirements: without them Sage cannot answer in
-the channel. The read scopes back the read-only tools. A missing read scope does not raise an
-error: Mythic filters those records out, so Sage sees no callbacks, no task output, or no files.
+`chat-ai.write` and `apitoken.write` are hard requirements: Mythic requires both on any AI channel
+token, and without them Sage cannot answer in the channel. The read scopes back the read-only
+tools. A missing read scope does not raise an error: Mythic filters those records out, so Sage sees
+no callbacks, no task output, or no files.
 
 | Scope | Why Sage needs it |
 |---|---|
@@ -139,7 +153,9 @@ error: Mythic filters those records out, so Sage sees no callbacks, no task outp
 | `task.read` | Read task history. |
 | `response.read` | Read task output. |
 | `operation.read` | Read the Mythic operation. |
-| `file.read` | List and download files in Mythic's file store. `ingest_collection` downloads collections this way. |
+| `operator.read` | Read which operator issued each task, which ledger reconciliation and operation memory record. |
+| `eventlog.write` | Store and read the marker in the operation's event log that identifies its [Engagement State Ledger](/guides/engagement-ledger). Without it, Sage cannot create that marker, and the ledger is unavailable in an operation that does not have one yet. |
+| `file.read` | List and download files in Mythic's file store. It is Sage's preflight gate for `ingest_collection`, which downloads collections this way, and `list_staged_tools` uses it to check whether Mythic already holds a staged binary. |
 
 Payload type, command, and command-parameter metadata need no scope, so the discovery tools work
 with any token.
@@ -148,25 +164,27 @@ with any token.
 
 | Scope | Enables |
 |---|---|
-| `task.write` | Creating any Mythic task: `issue_task_and_waitfor_task_output`, `upload_file_by_file_uuid`, and the tasks `execute_capability` issues. Mythic requires it; without it, tasking fails at Mythic. |
-| `callback.write` | Sage's preflight gate for `issue_task_and_waitfor_task_output`, `upload_file_by_file_uuid`, `execute_capability`, `ingest_collection`, and `sandbox_exec`. Without it, Sage disables those tools. |
-| `file.write` | Registering files in Mythic: `ensure_tool_uploaded`, and capability steps that stage inputs. Also Sage's gate for `download_tool`. |
+| `task.write` | Creating any Mythic task: `issue_task_and_waitfor_task_output`, `upload_file_by_file_uuid`, and the tasks `execute_capability` issues. Mythic requires it, and it is Sage's preflight gate for those tools; without it, Sage disables them. |
+| `file.write` | Registering files in Mythic: `ensure_tool_uploaded`, and capability steps that stage inputs. It is Sage's gate for `ensure_tool_uploaded`. |
 | `credential.write` | `add_credential`, and recording credentials a capability harvests. Includes `credential.read`. |
 | `credential.read` | `read_credentials`, if you do not grant `credential.write`. Leave both out to keep Sage away from the credential store. |
 | `payload.write` | `create_payload` and `delete_payload`. |
+
+No Sage tool uses `callback.write`. Builds before `v0.3.0` gated tasking, `ingest_collection`, and
+`sandbox_exec` on it.
 
 ### Example sets
 
 | Use | Scopes |
 |---|---|
-| Observe only, no tasking | `chat-ai.write`, `apitoken.write`, `callback.read`, `payload.read`, `task.read`, `response.read`, `operation.read`, `file.read` |
-| Task callbacks and run capabilities | `chat-ai.write`, `apitoken.write`, `callback.write`, `payload.read`, `task.write`, `response.read`, `operation.read`, `file.write`, `credential.write` |
-| Everything Sage can do | The tasking set plus `payload.write` |
+| Observe only, no tasking | `chat-ai.write`, `apitoken.write`, `callback.read`, `payload.read`, `task.read`, `response.read`, `operation.read`, `operator.read`, `eventlog.write`, `file.read` |
+| Task callbacks and run capabilities | `chat-ai.write`, `apitoken.write`, `callback.read`, `payload.read`, `task.write`, `response.read`, `operation.read`, `operator.read`, `eventlog.write`, `file.write`, `credential.write` |
+| Everything Sage can do | The tasking set plus `payload.write`, which matches the set Sage declares |
 
-`callback.write` includes `callback.read`, `task.write` includes `task.read`, and `file.write`
-includes `file.read`, so the tasking set omits those reads. This mapping is derived from the Sage
-and Mythic source for Mythic `v4.0.0rc5`. A write call missing its scope fails with a Mythic
-`missing_scope` error; a missing read scope returns empty results instead.
+`task.write` includes `task.read`, `file.write` includes `file.read`, and `payload.write` includes
+`payload.read`, so the larger sets omit those reads. This mapping is derived from the Sage source
+and Mythic v4's scope handling. A write call missing its scope fails with a Mythic `missing_scope`
+error; a missing read scope returns empty results instead.
 
 ## The capability layer
 
@@ -184,23 +202,28 @@ action would use without running it.
 
 ### The 15 capabilities
 
-| Capability | Intent |
-|---|---|
-| `collect-graph` | Run SharpHound to collect Active Directory graph data and ingest it into BloodHound. |
-| `gpo-controlled-system-exec` | Use a controlled GPO to obtain verified SYSTEM execution. |
-| `grant-directory-rights` | Use verified SYSTEM execution to grant directory replication rights. |
-| `dcsync-krbtgt` | Retrieve krbtgt credential material using verified replication authority. |
-| `dcsync-account` | Retrieve required account credential material using verified replication authority. |
-| `forge-golden-ticket` | Create and apply a Kerberos ticket from verified domain key material. |
-| `ensure-kerberos-context` | Establish or refresh a callback-scoped Kerberos context for a domain. |
-| `ensure-account-kerberos-context` | Establish a callback-scoped Kerberos context for an account. |
-| `read-managed-local-admin-secret` | Read a graph-proven managed local administrator secret. |
-| `use-managed-local-admin-secret` | Use a managed local administrator secret on its authorized host. |
-| `execute-as-local-admin` | Turn verified local administrator access into a live execution context. |
-| `endpoint-protection-adjustment` | Apply a bounded endpoint protection change required by execution. |
-| `adcs-ca-private-key-export` | Export a CA private key from a verified administrative execution context. |
-| `adcs-esc-certificate-enroll` | Enroll a certificate through a graph-proven ADCS escalation path. |
-| `adcs-certificate-auth` | Authenticate with verified certificate material to obtain domain control. |
+The catalog describes each capability by the effect it gains, what it needs first, and when to
+pick it over its neighbours. When the Supervisor scopes a supervised step to a capability, the
+delegation tool lists the catalog generated from these entries, and a name that is not a catalog
+capability is refused.
+
+| Capability | Gains | Needs |
+|---|---|---|
+| `collect-graph` | A BloodHound attack-path graph (paths, ACLs, group and GPO membership) for the collected technology. Runs SharpHound for Active Directory. | A live foothold with valid credentials for the technology being collected. |
+| `gpo-controlled-system-exec` | SYSTEM execution on machines in a GPO's scope. | Graph-proven write over a GPO that applies to the target, and a live foothold in the domain. |
+| `grant-directory-rights` | Directory replication (DCSync) rights for a principal in the domain. | Rights to add the replication rights, such as Domain Admins or Enterprise Admins. |
+| `dcsync-krbtgt` | The domain's krbtgt key, the input to `forge-golden-ticket` and `ensure-kerberos-context`. | Replication rights in the domain. |
+| `dcsync-account` | One named account's credential. | Replication rights in the domain. |
+| `forge-golden-ticket` | Domain-admin Kerberos authority for the domain. | The domain's krbtgt key. |
+| `ensure-kerberos-context` | A callback operating with domain-wide authority, built from krbtgt or golden-ticket material. | The domain's krbtgt key plus proven domain authority, and a live callback. |
+| `ensure-account-kerberos-context` | A callback operating as one named account, built from that account's own key. | That account's credential and a live callback. |
+| `read-managed-local-admin-secret` | A host's managed (LAPS) local administrator secret. | The right Kerberos account context and a graph-proven read path to the secret. |
+| `use-managed-local-admin-secret` | Local administrator on a host through its managed secret. | That host's managed secret and a live callback. |
+| `execute-as-local-admin` | A live execution context on a host where you already hold local administrator. | Local administrator on the host and a live callback. |
+| `endpoint-protection-adjustment` | A bounded Microsoft Defender change (real-time protection off, or a path exclusion) that unblocks execution. | Remote execution and local administrator on the host, and a live callback. |
+| `adcs-ca-private-key-export` | The ADCS CA private key. | Remote execution and local administrator on the CA host, and a live callback. |
+| `adcs-esc-certificate-enroll` | An account certificate enrolled through a vulnerable ADCS template. | A CA private-key export that failed because the key is not exportable, and a live callback. |
+| `adcs-certificate-auth` | Domain control by authenticating with certificate material. | The CA key or an enrolled certificate, and a live callback. |
 
 ## Extension points
 
@@ -221,7 +244,23 @@ rebuild:
 ## Tool drop zone
 
 `Payload_Type/sage/tools/` is an operator drop zone for tool binaries. It ships **empty**. Sage
-bundles no offensive binaries. When a TTP names a binary, `ensure_tool_uploaded` stages it from
-this folder into Mythic on demand, so you do not have to upload it by hand. Name the file exactly
-as the TTP's `binary_filename` does (for example, `SharpHound.exe`). `download_tool` can also
-fetch a pinned, sha256-verified binary from its TTP source into this folder, with your approval.
+bundles no offensive binaries, and a local image build does not bake the folder's contents into the
+image. Drop a binary in (for example `Rubeus.exe` or `SharpHound.exe`) and Sage can see it through
+`list_staged_tools`, then stage it into Mythic on demand with `ensure_tool_uploaded`, so you do not
+have to upload it by hand. `/tools staged` shows the same inventory in chat.
+
+The inventory reads only the top level of the folder and skips dotfiles, symlinks, and subfolders.
+For each file it reports:
+
+- the sha256, and the type (.NET assembly, native executable, BOF, script, or archive) and
+  architecture, read from the file header rather than the name; header parsing never runs the file;
+- the TTPs that document it. Renamed and per-architecture builds match their tool, so
+  `new_sharphound_x64.exe` and `SharpHound.o` are listed as SharpHound variants;
+- whether Mythic's file store already holds the same bytes, which needs `file.read`. When it does,
+  Sage uses that file and does not stage it again.
+
+A binary that no TTP documents is listed with a hint that tells Sage to ask you what it is for
+before using it. When Sage looks for a tool that is in neither the folder nor Mythic, it asks you
+to add it. Staging a file never authorizes running it: uploading it to a callback and tasking stay
+guarded. `download_tool` can also fetch a pinned, sha256-verified binary from its TTP source into
+this folder, with your approval.

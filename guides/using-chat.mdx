@@ -12,8 +12,9 @@ Sage output as markdown, and shows each tool execution as an updating, collapsib
 
 Set `mode` when you create the channel, or switch it live with `/mode` (no argument reports the
 current mode). Start in `conversation`, which is read-only; move to `supervised` when you want
-Sage to propose actions you approve one at a time; use `auto` only for a prepared, scoped objective
-in a lab. What each mode permits is defined in [Authority modes](/understand/authority-modes).
+Sage to propose actions you approve one at a time. `auto` is experimental: use it only for
+research and evaluation against a prepared, scoped objective in a lab. What each mode permits is
+defined in [Authority modes](/understand/authority-modes).
 
 ## Reading the chips
 
@@ -23,7 +24,7 @@ live configuration and connection state without a model call:
 | Chip | What it tells you |
 |---|---|
 | Provider, Model | Which model provider and model this channel uses. |
-| Max Steps | The global cap on model steps for a run (default 200, `0` means unlimited). It halts a runaway loop. |
+| Max Steps | The cap on model steps for each chat request (default 200, `0` means unlimited). The count starts again with every new request, and approving a card continues the budget of the request it belongs to. It halts a runaway loop. |
 | Agent | The specialist currently executing your request, or `Idle`. |
 | Policy | How Sage selects its next move. `hybrid` (the default) asks the model to choose only at real branches of an otherwise deterministic plan; `symbolic` always takes the first admissible action and cannot interpret Respond guidance; `llm` asks the model on every nonempty frontier. |
 | Mode | The authority mode in force. |
@@ -45,7 +46,12 @@ rather than in the channel config, which stores it in plaintext.
 In `supervised`, every guarded action (issuing a command, executing a capability, creating a
 payload, adding a credential) pauses as a native Mythic approval card before it runs. Approval is
 **default-deny**: only an explicit Accept lets it through. Read-only tools (`list_*`, `get_*`,
-downloads) never prompt.
+downloads) never prompt, and neither does staging a tool binary into Mythic's file store; the task
+that runs that binary still does.
+
+Each specialist step carries at most one guarded action. When a step ends at its action or at one of
+its limits, the Supervisor chooses the next step, and the next guarded action arrives as a new card.
+See [Bounded supervised steps](/understand/authority-modes#bounded-supervised-steps).
 
 When the card shows a direct Mythic task proposal, it displays the deterministically prepared
 command and arguments. If the command schema or selected registered file changes before issuance,
@@ -74,7 +80,8 @@ budget, and no-progress loop-breaker), independent of your Max Steps setting.
 - `/state` shows the [Engagement State Ledger](/guides/engagement-ledger), the durable record of
   achieved and pending gains shared across chats in the same Mythic operation.
 - `/tools` lists the public Mythic tool inventory without a model call, distinguishing read-only
-  tools from guarded actions.
+  tools from guarded actions. `/tools staged` lists the binaries in Sage's
+  [tool drop zone](/reference/tools-and-capabilities#tool-drop-zone).
 - `/report` shows retained identity and membership observations and suggested next checks.
 
 The full command list is in the [Slash commands reference](/reference/slash-commands).

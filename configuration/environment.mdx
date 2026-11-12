@@ -46,9 +46,9 @@ If you contribute to Sage from a source checkout, your local edits to this track
 | `API_ENDPOINT` | Optional endpoint override: point `openai` at any OpenAI-compatible server |
 | `API_KEY` | Provider API key when required |
 | `mode` | `conversation` (default), `supervised`, or `auto` |
-| `autonomous_solve` | Enable objective-led controller execution; supervised still approves each guarded action |
+| `autonomous_solve` | Enable objective-led controller execution; supervised still approves each guarded action. Ignored in `conversation`, which stays read-only |
 | `policy_mode` | `hybrid` (default), `symbolic`, or `llm` capability selection |
-| `max_steps` | Model-step ceiling; unset defaults to `200`, `0` means unlimited |
+| `max_steps` | Model-step ceiling per chat request; unset defaults to `200`, `0` means unlimited |
 
 **Providers.** The four above are the tested set. Sage builds the model through LangChain's
 `init_chat_model`, so other providers may work but are unverified. Never infer the effective
@@ -63,7 +63,21 @@ self-hosted model, an internal gateway, or a proxy such as LiteLLM.
 among them. `symbolic` is a deterministic, model-free baseline for reproducible debugging. `llm`
 gives the model the full catalog: most latitude, weakest guardrails.
 
-**Step budget.** `max_steps` bounds model steps per run. The autonomous controller independently
-enforces hard stop-losses (a cycle cap, a wall clock, a token budget, and a no-progress
-loop-breaker), each tunable through its `SAGE_CONTROLLER_MAX_CYCLES`,
+**Step budget.** `max_steps` bounds model steps in each chat request. The count starts again with
+every new request, and approving a card continues the budget of the request it belongs to. The
+autonomous controller independently enforces hard stop-losses (a cycle cap, a wall clock, a token
+budget, and a no-progress loop-breaker), each tunable through its `SAGE_CONTROLLER_MAX_CYCLES`,
 `SAGE_CONTROLLER_WALL_S`, and `SAGE_CONTROLLER_TOKEN_BUDGET` variables.
+
+## Container-wide settings
+
+These settings apply to every chat in the container, so they belong in Sage's `.env` (or the
+container environment), not in chat configuration. Each ships commented out in `.env`.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `SAGE_STEP_MAX_TOOL_CALLS` | `20` | Tool calls one [supervised step](/understand/authority-modes#bounded-supervised-steps) may make |
+| `SAGE_STEP_MAX_ACTIVE_SECONDS` | `600` | Seconds of the specialist's own work one supervised step may spend; approval waits and the guarded action itself do not count |
+| `SAGE_STEP_MAX_CONSECUTIVE_ERRORS` | `3` | Consecutive failed tool calls that end a supervised step |
+| `SAGE_STEP_LEDGER_ATTRIBUTION_SECONDS` | `600` | Window after a Sage task during which a callback's first check-in is credited to that task in the [Engagement State Ledger](/guides/engagement-ledger#what-supervised-steps-record) |
+| `SAGE_ENGAGEMENT_NETBIOS_MAP` | unset | Sage learns which FQDN each NetBIOS domain name means from the operation's own evidence. Set `off` to stop learning, or a JSON object such as `{"CORP":"corp.example.com"}` to pin names; learned pairs fill in domains the object does not name |

@@ -1,10 +1,11 @@
 ---
 title: "Limitations and validated configuration"
-description: "The configuration Sage's beta was live-validated against, what that does and does not establish, and the known limits."
+description: "The configuration Sage was last live-validated against, how 0.3.0 was qualified, what that does and does not establish, and the known limits."
 ---
 
-Sage is beta software. This page states what has been validated, on what, and what remains
-unproven. Read it before you plan an engagement around Sage.
+Sage is pre-1.0 software under active development, and its live validation lags its code. This
+page states what has been validated, on what, and what remains unproven. Read it before you plan an
+engagement around Sage.
 
 <Warning>
   **Authorized use only.** An autonomous agent driving a C2 carries real risk of unintended impact
@@ -14,7 +15,8 @@ unproven. Read it before you plan an engagement around Sage.
 
 ## The validated configuration
 
-The most recent live-validated configuration is the one recorded for `v0.1.0-beta`:
+The most recent live-validated configuration recorded in the Sage repository is the one recorded
+for `v0.1.0-beta`:
 
 | Component | Validated version |
 |---|---|
@@ -25,24 +27,47 @@ The most recent live-validated configuration is the one recorded for `v0.1.0-bet
 | Sage host | Linux arm64, Sage in Docker |
 | Model route | `sonnet-4-6` through Sage's `openai` provider via an OpenAI-compatible LiteLLM route |
 
-Sage `v0.2.0` passed its offline suite, repository-boundary guards, and scripted tests of the
-assembled chat path, but the clean-clone Docker qualification and live-range runs were **not**
-repeated for it. The table above is therefore the latest live-validated configuration, not a
-validation of `v0.2.0`. The [release notes](/reference/release-notes) record what changed since.
+Releases from `v0.2.0` on are validated by the offline suite, the repository-boundary guards, the
+repo-hygiene checks, and scripted tests of the assembled chat path; `v0.2.0` had no live-range run.
+
+The `v0.3.0` release qualification runs once, in supervised mode, on a locally built image of the
+release source against Mythic `v4.0.8`, with an Apollo foothold on GOAD and Claude Sonnet 4.6
+through an OpenAI-compatible LiteLLM route. It is one objective request to obtain Domain Admin of
+one GOAD domain from that foothold, plus at most one `proceed` if the request ends without proof,
+within fixed time, token, cost, and approval-card limits, with no operator input other than
+accepting or rejecting cards. Sage `v0.3.0` is published only after that run passes, and its
+GitHub release notes report the image, architecture, Mythic version, model route, and result. That
+result covers that one configuration and objective. The published image is checked for
+installation, not requalified. The [release notes](/reference/release-notes) record what changed in
+each release.
 
 ## What is not validated
 
 Other operating systems and architectures; other Mythic, Apollo, BloodHound CE, or BloodHound MCP
-revisions; other model providers, direct-provider routes, and models; and payload types other than
-Apollo are not validated for this beta. Sage has code paths for several of them (four model
-providers, a generic payload adapter), and those code paths are not evidence that the
-configuration works.
+revisions; other model providers, routes, and models; and payload types other than Apollo are not
+validated. Sage has code paths for several of them (four model providers, a generic payload
+adapter), and those code paths are not evidence that the configuration works.
 
 ## Known limits
 
-- **Auto mode is experimental.** It has been exercised against the
-  [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab only. That does not establish
-  reliability or generalization on another range or on a production network.
+- **Supervised mode is proven on one lab.** Live evidence for objective-led supervised mode comes
+  only from GOAD with an Apollo foothold and one model route. Sage proposes and you approve each
+  guarded action, but the quality of its proposals on another engagement is not established. The
+  Supervisor does not yet plan bounded subgoals: it can hand a specialist the whole objective, so a
+  [step](/understand/authority-modes#bounded-supervised-steps) runs until one of its limits or an
+  error. When the Supervisor scopes a step to the wrong catalog procedure, the request ends rather
+  than re-scoping.
+- **An approved action can be issued twice after a crash.** If Sage stops after issuing an approved
+  supervised action but before it records the result, the resumed request can issue that action
+  again. Check the task list in Mythic before you approve the same action after a restart.
+- **Auto mode is experimental.** It was not run live on 0.3.0, and it has been exercised only
+  against the [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab on earlier development
+  builds. That does not establish reliability or generalization on another range or on a
+  production network.
+- **The Engagement State Ledger records proven gains, not all work.** Work done through generic
+  commands such as `powershell`, `shell`, or an assembly no verifier models leaves no row unless a
+  verifier recognizes its effect, so a short ledger does not mean nothing was gained. See
+  [The Engagement State Ledger](/guides/engagement-ledger).
 - **Assisted operation memory is narrowly proven.** The acceptance case covers one shape of
   finding: credential material in a downloaded file from a completed Apollo `download` task. It
   does not show that a consultant would have missed the finding, acted on it, or gained value from
@@ -59,6 +84,7 @@ configuration works.
 - **macOS Docker Desktop and OrbStack need a database override.** See
   [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
 
-The authoritative statement of these boundaries is the Sage repository's
-[README](https://github.com/MythicAgents/Sage#limitations) and
+Each release's other known issues, such as repeated collection proposals and chat display ordering,
+are listed in the [release notes](/reference/release-notes). The authoritative statement of these
+boundaries is the Sage repository's [README](https://github.com/MythicAgents/Sage#limitations) and
 [security and data handling document](https://github.com/MythicAgents/Sage/blob/main/docs/SECURITY_AND_DATA_HANDLING.md).

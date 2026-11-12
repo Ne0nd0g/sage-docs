@@ -67,7 +67,7 @@ On the agent-graph path, requests route through a **Supervisor** and six special
 
 | Agent | Role |
 |---|---|
-| Supervisor | Routes requests and coordinates specialists |
+| Supervisor | Routes requests, scopes each supervised step, and coordinates specialists. In conversation and supervised mode it can list callbacks and read the Engagement State Ledger itself, without a delegation. |
 | Mythic Operator | All Mythic C2 operations and in-memory offensive tradecraft |
 | Mythic Payload | Builds and configures Mythic payloads and C2 profiles |
 | BloodHound | Attack-graph lifecycle: collects, ingests, and analyzes BloodHound facts |
@@ -78,6 +78,12 @@ On the agent-graph path, requests route through a **Supervisor** and six special
 The **Autonomous Executor** in the diagram is the objective controller described above. It is not a
 specialist the Supervisor delegates to: an objective run bypasses Supervisor and worker negotiation
 entirely.
+
+In supervised mode, each delegation to a specialist is one bounded step. The Supervisor names the
+callback, the targets, and the result the step should produce; Sage checks that brief before the
+specialist starts, allows the step one guarded action, and hands the Supervisor a typed outcome read
+from Mythic rather than the specialist's own summary. See
+[Bounded supervised steps](/understand/authority-modes#bounded-supervised-steps).
 
 Each agent's system prompt, and the TTP library the agents plan from, are plain files in the Sage
 repository that you can edit. See

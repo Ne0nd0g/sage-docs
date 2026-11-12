@@ -15,7 +15,9 @@ resolve against secrets and environment variables is covered in
   Sage issues are visibly the bot's, not yours. The channel token needs `apitoken.write` (to
   generate the scoped tokens the channel tools use) and `chat-ai.write` (to stream responses back
   to the channel). Sage also needs read scopes to observe Mythic, and write scopes such as
-  `task.write` for the guarded tools you want. See
+  `task.write` for the guarded tools you want. Sage declares the full set it uses to Mythic, but
+  Mythic does not enforce that list: a narrower token still runs, with the matching tools switched
+  off. See
   [Minimum bot token scopes](/reference/tools-and-capabilities#minimum-bot-token-scopes).
 </Note>
 
@@ -57,9 +59,9 @@ runs as a read-only conversation using the provider defaults.
   | Field | What it does |
   |---|---|
   | Mode | Conversation (default) is read/response-only and cannot execute external tools. Supervised permits model-proposed guarded work only after exact operator approval. Autonomous runs the execution kernel unattended. |
-  | Autonomous Solve | Force deterministic multi-hop solving for this session. In supervised mode, controller moves still require approval and completion requires objective evidence. Off keeps supervised requests on the scoped graph workflow. Mode=Autonomous always enables objective solving. |
+  | Autonomous Solve | Force deterministic multi-hop solving for this session. In supervised mode, controller moves still require approval and completion requires objective evidence. Off keeps supervised requests on the scoped graph workflow. Mode=Autonomous always enables objective solving. Ignored in Conversation mode, which stays read-only; Sage says so once in the chat. |
   | Policy | Hybrid (default) has the model select from the complete deterministic admissible frontier at real branches or after supervised Respond guidance. Symbolic keeps deterministic first-admissible selection and cannot interpret Respond guidance. LLM calls the model on every nonempty frontier. |
-  | Max Steps | Global cap on model steps for this run; halts a runaway loop. Defaults to 200; 0 means unlimited. |
+  | Max Steps | Cap on model steps for each chat request; halts a runaway loop. Defaults to 200; 0 means unlimited. |
 
   <Frame>
     ![The Mode, Autonomous Solve, Policy, and Max Steps fields at their defaults: Conversation, off, Hybrid, and 200](/assets/new-ai-chat/authority.png)

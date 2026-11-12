@@ -13,8 +13,8 @@ To raise log verbosity on a normal Mythic install, skip to [Debug logging](#debu
 
 ## What you need
 
-- A running Mythic install that this machine can reach. This beta is qualified against Mythic
-  `v4.0.0rc5`; see [Limitations](/understand/limitations).
+- A running Mythic v4 install that this machine can reach. The 0.3.0 release qualification runs on
+  Mythic `v4.0.8`; see [Limitations](/understand/limitations).
 - Python 3.14.
 - A clone of the [Sage repository](https://github.com/MythicAgents/Sage).
 - Optionally, a local clone of the
@@ -91,9 +91,9 @@ To raise log verbosity on a normal Mythic install, skip to [Debug logging](#debu
     after you close the terminal, start it inside `tmux` or `screen`.
   </Step>
   <Step title="Confirm it connected">
-    In the Mythic UI, Sage's chat container shows as online, and **New AI Chat** offers Sage. At
-    `info` or `debug`, the terminal also prints Sage's startup banner and the names (never the
-    values) of the settings it loaded from `.env` files.
+    In the Mythic UI, Sage's chat container shows as online, and **New AI Chat** offers Sage. The
+    terminal prints Sage's startup version banner at any log level. At `info` or `debug`, it also
+    prints the names (never the values) of the settings Sage loaded from `.env` files.
   </Step>
 </Steps>
 

@@ -33,6 +33,15 @@ credentials and run `/bloodhound`: see
 A bare `McpError: Connection closed` with no explanation means the Sage build predates that
 diagnostic. Update Sage.
 
+## BloodHound is connected, but graph collection fails or ingest is not ready
+
+`/bloodhound` reports **Ingest** as not ready when the connected MCP server cannot report
+ingest-job status. Sage then refuses to collect or ingest, reports **Collection failed** with the
+dependency diagnostic, and shows a one-time notice in chat; graph reads still work. The image ships
+the pinned MCP with Sage's ingest-status patch, so the usual cause is a stale image or a custom
+checkout without the patch. Rebuild with `sudo ./mythic-cli build sage`, or patch your checkout and
+run `/bloodhound force`. See [Ingest readiness](/guides/bloodhound#ingest-readiness).
+
 ## `/mcp connect` is refused before it connects
 
 The connect request has no `sage_execution_class`, so it defaults to `unclassified` and is
@@ -47,12 +56,20 @@ MCP tools default to guarded. Classify read-only tools in `mcp_tool_policy.json`
 
 ## A guarded tool is missing or disabled
 
-The channel's bot token lacks the scope Sage checks for that tool (`callback.write`,
-`payload.write`, `credential.write`, or `file.write`), so Sage disables the tool up front. Add the
-scope to the bot token. If the tool is enabled but tasking fails with `missing_scope`, the token
-also needs `task.write`. If Sage reports no callbacks, output, or files that you can see in
-Mythic, the token is missing a read scope. See
+The channel's bot token lacks the scope Sage checks for that tool (`task.write`, `payload.write`,
+`credential.write`, `file.write`, or `file.read`), so Sage disables the tool up front. Add the
+scope to the bot token. If Sage reports no callbacks, output, or files that you can see in Mythic,
+the token is missing a read scope. See
 [Minimum bot token scopes](/reference/tools-and-capabilities#minimum-bot-token-scopes).
+
+Builds before `v0.3.0` gated tasking on `callback.write` instead of `task.write`, so a token with
+only `task.write` lost its tasking tools there.
+
+## Conversation mode does not act, even with Autonomous Solve on
+
+This is expected. Conversation mode stays read-only, and Sage ignores the Autonomous Solve toggle
+there and says so once in the chat. Switch the channel to Supervised with `/mode supervised` to
+approve actions one at a time. See [Authority modes](/understand/authority-modes).
 
 ## An approved task ended without a confirmed result
 
@@ -65,7 +82,7 @@ unknown: inspect that task's output in a fresh request before approving another 
 
 Mythic records only `complete`, `error`, and `cancelled` as a request's status, so a request that
 Sage stopped on its own or that ended blocked can still show as `complete`. The final message
-states how the request ended. Builds after `v0.2.0` also record it as `turn_outcome` in the final
+states how the request ended. Since `v0.3.0`, Sage also records it as `turn_outcome` in the final
 message's metadata.
 
 ## Sage lost the conversation after a restart
@@ -78,9 +95,16 @@ channel and restate scope and evidence. See
 ## A reinstall fails on root-owned files
 
 Sage `v0.2.0` writes some runtime state into the service directory as root, which can block a later
-`mythic-cli install` by a non-root user. Archive that state with `sudo` before reinstalling. Later
-builds run as the service directory's owner and hand the files back on first start. See
-[Clean resets](/configuration/runtime-state#clean-resets).
+`mythic-cli install` by a non-root user. Archive that state with `sudo` before reinstalling. From
+`v0.3.0`, Sage runs as the service directory's owner and hands root-owned files from earlier
+versions back on first start. See [Clean resets](/configuration/runtime-state#clean-resets).
+
+## Sage or the Phoenix UI stops responding
+
+On `v0.2.0`, the Phoenix UI on port 6006 can freeze on its first request; `v0.3.0` fixes this. To
+see where a running Sage is stuck, send the process `SIGUSR1` (`docker kill -s USR1 sage` for the
+container): Sage writes every thread's stack to its log. Read it with
+`sudo ./mythic-cli logs sage`.
 
 ## A trace has no model spans
 

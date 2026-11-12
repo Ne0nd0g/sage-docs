@@ -15,10 +15,10 @@ walks through getting each one.
 
 | Component | Version | Notes |
 |---|---|---|
-| BloodHound Community Edition | 9.5.1 | The version this beta is validated against. Other versions are unvalidated. |
-| BloodHound MCP server | Pinned in the Sage image | Baked into the Sage container at `/opt/bloodhound_mcp`. Nothing to install under Mythic. |
+| BloodHound Community Edition | 9.5.1 | The last live-validated version. Other versions are not validated. |
+| BloodHound MCP server | Pinned in the Sage image | Baked into the Sage container at `/opt/bloodhound_mcp`: the pinned commit plus Sage's ingest-status patch. Nothing to install under Mythic. |
 
-BloodHound Enterprise is unvalidated for this beta.
+BloodHound Enterprise is not validated.
 
 ## Set up BloodHound for Sage
 
@@ -77,7 +77,7 @@ BloodHound Enterprise is unvalidated for this beta.
     under **Settings → Resources → Network → Enable host networking**, then **Apply and restart**
     (see [Docker's host network driver](https://docs.docker.com/engine/network/drivers/host/)).
     Without it, `localhost` inside the Sage container does not reach the Mac. This macOS path is
-    unvalidated for the beta.
+    not validated.
   </Step>
   <Step title="Give Sage the three values">
     Pick one place. Values resolve in this order, highest first: chat configuration, user secret,
@@ -97,10 +97,11 @@ BloodHound Enterprise is unvalidated for this beta.
     resolves.
   </Step>
   <Step title="Connect and confirm">
-    Open a chat and run `/bloodhound`. It connects if needed and reports the connection either
-    way, so it is also the safe way to ask whether BloodHound is connected. The chip row above the
-    transcript shows **BloodHound connected** once it succeeds; see
-    [Reading the chips](/guides/using-chat#reading-the-chips).
+    Open a chat and run `/bloodhound`. It connects if needed and reports two things separately:
+    **Connection**, and **Ingest**, which says whether the connected server can report ingest-job
+    status (see [Ingest readiness](#ingest-readiness)). It is also the safe way to ask whether
+    BloodHound is connected. The chip row above the transcript shows **BloodHound connected** once
+    the connection succeeds; see [Reading the chips](/guides/using-chat#reading-the-chips).
 
     If it does not connect, check the Sage container log; see
     [When BloodHound is not connected](#when-bloodhound-is-not-connected).
@@ -111,12 +112,17 @@ BloodHound Enterprise is unvalidated for this beta.
 
     - The `collect-graph` capability runs SharpHound on a callback and ingests the result. It runs
       only on footholds with a payload adapter; see
-      [Payload adapters](/reference/tools-and-capabilities#payload-adapters).
+      [Payload adapters](/reference/tools-and-capabilities#payload-adapters). In supervised mode,
+      one approval card covers its identity checks, staging, the collector, the download, and the
+      ingest.
     - On any other agent, run SharpHound through ordinary tasking, download the ZIP, and ingest it
       with `ingest_collection`. The bytes go from Mythic straight into BloodHound.
     - You can also upload a collection yourself in the BloodHound UI.
 
-    Ingest is asynchronous, so newly ingested domains can take a few seconds to appear.
+    Sage counts a collection as done only when BloodHound reports its ingest job `Complete`. A job
+    still ingesting after Sage's two-minute wait reports **Collection pending**, and a job that
+    BloodHound ends as failed, partially complete, canceled, or timed out reports
+    **Collection failed**.
   </Step>
 </Steps>
 
@@ -132,6 +138,31 @@ subsequent chats.**
   values without a restart. The rebind disconnects before connecting, so if the new settings are
   wrong you are left with no connection rather than the old one. `/bloodhound` will connect
   again once you have fixed the configuration.
+
+## Ingest readiness
+
+A connected server is not necessarily able to ingest. Sage uploads a collection through the MCP's
+`file_upload` tool, then reads that exact ingest job's status until BloodHound reports it complete.
+Only that verified result records the collection, which is what stops Sage collecting the same
+graph again. The pinned MCP commit has no status operation, so the Sage image applies Sage's own
+patch (`patches/bloodhound-mcp-ingest-status.patch`) to it at build time, and the build fails if the
+patch does not apply.
+
+Sage checks the connected server, not a checkout on disk, with one read-only status probe:
+
+- `/bloodhound` reports **Ingest** as ready or not ready, and probes an already-connected server too.
+- Conversation and supervised chats keep working with a server that is connected but cannot report
+  ingest status. Graph reads work, and the chat shows a one-time notice that graph ingest is
+  unavailable, naming the fix.
+- Graph collection checks again before its first target task, and ingest checks again before it
+  uploads. Against an incompatible server neither tasks the target nor uploads, and the result is
+  **Collection failed**.
+- Autonomous solves fail closed until the connected server answers the status probe.
+
+The usual cause is a stale image or a custom checkout without the patch. Syncing Sage source into
+the service directory does not change `/opt/bloodhound_mcp`, and a restart alone does not pick up a
+new image: rebuild it with `sudo ./mythic-cli build sage`. For a custom checkout, see
+[Use your own MCP checkout](#use-your-own-mcp-checkout).
 
 ## When BloodHound is not connected
 
@@ -164,7 +195,8 @@ fixed.
 <Accordion title="Advanced: point Sage at a different BloodHound MCP checkout">
   The image pins the BloodHound MCP server at commit
   [`92a37dd`](https://github.com/mwnickerson/bloodhound_mcp/tree/92a37dd481ce675fe552f14c9957a31dbbcd212e),
-  the commit this beta is validated against. Override it only if you need a different revision.
+  the last live-validated commit, and applies Sage's ingest-status patch to it. Override it only
+  if you need a different revision.
 
   Set `SAGE_BLOODHOUND_MCP_DIR` to the checkout's path *inside the container*. Under Mythic, only
   the service directory (`InstalledServices/sage`) is mounted, at `/Mythic`, so clone the server
@@ -172,10 +204,28 @@ fixed.
   `/opt/bloodhound_mcp` is lost on the next image rebuild. The service directory is created owned
   by root, so writing into it needs elevation.
 
-  The trade-offs: the checkout is no longer pinned by the image, `uv` resolves its dependencies on
-  first connect (so that connect needs network access), and a `.env` beside it holds credentials
-  in plaintext. `/bloodhound <directory>` connects from a given checkout for testing.
+  Your checkout needs the same patch as the image, or `/bloodhound` reports ingest as not ready and
+  Sage refuses to collect. Apply it to a clean checkout of the pinned commit; Sage never patches a
+  checkout for you. From your Mythic directory:
+
+  ```bash
+  sudo git -C InstalledServices/sage/bloodhound_mcp checkout --detach 92a37dd481ce675fe552f14c9957a31dbbcd212e
+  sudo git -C InstalledServices/sage/bloodhound_mcp apply --check ../patches/bloodhound-mcp-ingest-status.patch
+  sudo git -C InstalledServices/sage/bloodhound_mcp apply ../patches/bloodhound-mcp-ingest-status.patch
+  ```
+
+  Then run `/bloodhound force` to reconnect. An MCP that implements the same status operation
+  natively needs no patch.
+
+  The trade-offs: the checkout is no longer pinned or patched by the image, so keeping it at the
+  pinned commit with the patch applied is on you, and a `.env` beside it holds credentials in
+  plaintext. Inside the container Sage starts the server with `uv run --no-sync`, so the checkout
+  runs with whatever environment it already has and needs its dependencies synced
+  (`uv sync --no-dev`) before you connect. This custom-checkout path is not validated.
+  `/bloodhound <directory>` connects from a given checkout for testing.
 
   For local development outside Mythic there is no baked checkout: set `SAGE_BLOODHOUND_MCP_DIR`
-  in `Payload_Type/sage/.env` to your own clone.
+  in `Payload_Type/sage/.env.local` (or `.env`) to your own clone, patched the same way. A source
+  run starts the server with `uv run`, which syncs its dependencies on first connect, so that
+  connect needs network access.
 </Accordion>

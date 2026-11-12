@@ -1,16 +1,18 @@
 ---
 title: "Sage"
-description: "Sage is an AI operator that lives inside your Mythic C2: it reads your live operation, reasons like an analyst over the BloodHound attack graph, and drives real Mythic tasks."
+description: "Sage is an AI operator that lives inside your Mythic C2 and works under your direction: it reads your live operation, reasons over the BloodHound attack graph, and proposes Mythic tasks that run when you approve them."
 ---
 
 You work with Sage in a [Mythic](https://github.com/its-a-feature/Mythic) chat channel. It reads
 the callbacks, tasks, credentials, and files in your operation alongside your BloodHound graph.
-Ask it a scoped question about the engagement and get an answer grounded in that data, or hand it
-an objective and let it plan and drive the path itself.
+Ask it a scoped question about the engagement and get an answer grounded in that data, or work an
+objective with it: Sage proposes each next step as a concrete Mythic task, shows you what it
+expects that step to prove, and runs it only when you approve.
 
 <Warning>
   **Authorized use only, and still maturing.** Use Sage only for activity you are explicitly
-  authorized to perform. Sage is in beta: an autonomous agent driving a C2 carries real risk of
+  authorized to perform. Sage is under active development, and its behavior in a production
+  environment is not yet well understood: an autonomous agent driving a C2 carries real risk of
   unintended impact on a live network. Weigh production use very carefully, and prefer labs and
   authorized engagements until Sage has matured.
 
@@ -24,9 +26,11 @@ an objective and let it plan and drive the path itself.
 Sage installs into a Mythic server the same way a payload type or C2 profile does, and it has no
 function outside one. It runs on the control plane and operates through your Mythic payloads.
 It is not an implant, and it does not create a Sage payload callback. Sage is a native Mythic
-**chat container**, so it requires Mythic v4: chat containers do not exist before v4. The
-beta-qualified target is **Mythic `v4.0.0rc5`**; newer v4 builds may work but are outside the
-validated matrix. See [Limitations and validated configuration](/understand/limitations).
+**chat container**, so it requires Mythic v4: chat containers do not exist before v4. The 0.3.0
+release qualification runs one supervised GOAD objective on **Mythic `v4.0.8`**, and the 0.3.0
+GitHub release notes report its result. The last live qualification recorded in the Sage
+repository is 0.1.0-beta's, on Mythic `v4.0.0rc5`. Other Mythic v4 builds may work but have not
+been qualified. See [Limitations and validated configuration](/understand/limitations).
 
 Three boundaries define the product:
 
@@ -50,11 +54,11 @@ Three boundaries define the product:
     default). Switch to `supervised` to let Sage propose guarded actions; every one of them waits
     for your explicit approval, default-deny, before it runs.
   </Accordion>
-  <Accordion title="Auto: autonomous objectives">
+  <Accordion title="Auto: experimental autonomous objectives">
     Give Sage a scoped objective and it runs the observe → select → execute → verify loop without
-    per-action approval. This is experimental: its current validation is the
-    [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab environment only, and it does not
-    establish reliability or generalization elsewhere.
+    per-action approval. Auto is a research and evaluation capability, exercised only against the
+    [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab on development builds, and it was not
+    run live on 0.3.0. That does not establish reliability or generalization elsewhere.
   </Accordion>
 </AccordionGroup>
 
