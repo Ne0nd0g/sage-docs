@@ -53,6 +53,7 @@
         "group": "Configuration",
         "pages": [
           "configuration/environment",
+          "configuration/edit-files-from-mythic",
           "configuration/runtime-state",
           "configuration/run-from-source",
           "configuration/observability"

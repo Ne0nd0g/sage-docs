@@ -88,9 +88,11 @@ BloodHound Enterprise is not validated.
       configuration.
     - **The chat's BloodHound fields** in the New AI Chat dialog. Values entered there are stored
       in plaintext channel configuration. See [Chat channel configuration](/guides/chat-config).
-    - **Sage's `.env`** (`InstalledServices/sage/.env` under Mythic), edited from the Mythic
-      installed-services page and shared by every chat in that container. Restart the container
-      after saving.
+    - **Sage's `.env`**, shared by every chat in that container. In the Mythic UI's
+      [container file browser](/configuration/edit-files-from-mythic) it is `.env` in the top
+      folder; on the Mythic host it is `InstalledServices/sage/.env`. Restart the container after
+      saving. Anyone in Mythic other than a spectator
+      can read this file there, so prefer user secrets for the token.
 
     A `BLOODHOUND_*` variable set directly on the container does not reach the MCP server: Sage
     launches it with a fixed safe subset of its environment and forwards only the values it

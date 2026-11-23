@@ -16,8 +16,10 @@ chain; first non-empty wins:
 
 `Payload_Type/sage/.env` is committed on purpose, which is unusual and deliberate. A
 `.env.example` under Mythic would mean getting a shell inside the container to copy it. Shipping
-the real file means you open it from the **Mythic web UI**, browse the Sage chat container's
-files, edit, save, and restart the container. No shell, no `docker cp`, no `sudo`.
+the real file means you open it in the Mythic web UI's container file browser, where it is `.env`
+in the top folder, edit it, and save it, with no shell, `docker cp`, or `sudo`. Applying the change takes one container restart on the
+Mythic host, because Mythic 4.0.8's web UI has no restart control. See
+[Edit Sage's files from Mythic](/configuration/edit-files-from-mythic#edit-env).
 
 It ships with every line commented out, so cloning Sage sets nothing. Two rules govern how it
 loads:

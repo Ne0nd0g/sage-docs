@@ -36,6 +36,7 @@ page-level line mapping is done during verification, not recorded here.
 | `guides/findings-watcher` | `Payload_Type/sage/sage_chat/` (findings watcher) |
 | `guides/engagement-ledger` | `Payload_Type/sage/ai/langgraph/` (`engagement_store.py`, `engagement_ledger.py`, `engagement_state.py`, `proof_boundary.py`, `effect_rules.py`, `step_ledger.py` (supervised step gains, attribution window), and the reconcile and evidence tools in `mythic_tools.py`), `Payload_Type/sage/sage_chat/slash.py` (`/state`), `Payload_Type/sage/sage_chat/` (operation memory, report identity/observations), `Payload_Type/sage/runtime_db.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py` |
 | `configuration/environment` | `config.json`, `Payload_Type/sage/dotenv_bootstrap.py`, `Payload_Type/sage/config.py`, `Payload_Type/sage/.env` (container-wide settings), `Payload_Type/sage/sage_chat/models.py` (option text), `Payload_Type/sage/ai/langgraph/step_bounds.py`, `Payload_Type/sage/ai/langgraph/step_ledger.py` |
+| `configuration/edit-files-from-mythic` | `Payload_Type/sage/prompts/` (`README.md`, file headers), `Payload_Type/sage/ai/langgraph/prompt_loader.py` (read per agent build, `str.format()` rendering and fallback, `tools` filter), `Payload_Type/sage/ai/langgraph/ttp_library.py` (read per lookup, skip rules), `Payload_Type/sage/ttps/contracts/README.md`, `Payload_Type/sage/ai/langgraph/staged_tools.py` (`binary_filename` index, per-call scan), `Payload_Type/sage/dotenv_bootstrap.py` (read once at startup), `Payload_Type/sage/Dockerfile` (`WORKDIR /Mythic/`), `Payload_Type/sage/requirements.txt` (`mythic-container` pin); `mythic-container` `mythic_service.py` (file browser rooted at the running script's folder); Mythic `MythicReactUI` Installed Services Chat tab and Container Files dialog (labels), `hasura-docker/metadata/actions.yaml` and `mythic-docker` `initialize.go` (`noSpectators` file routes), `Mythic_CLI` (`installservice.go` reinstall replaces the directory, `serviceMetadata.go` `/Mythic/` bind mount and `sage_use_volume`), no container restart in the 4.0.8 UI |
 | `configuration/runtime-state` | `Payload_Type/sage/runtime_db.py`, `Payload_Type/sage/ai/langgraph/engagement_store.py` (ledger tables, legacy-file guard), `Payload_Type/sage/ai/langgraph/engagement_ledger.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py`, `Payload_Type/sage/container/`, Mythic CLI (`stop`/`start`) |
 | `configuration/run-from-source` | `README.md` (Requirements, Local development, `.env` loading), `Payload_Type/sage/main.py`, `Payload_Type/sage/dotenv_bootstrap.py` (`.env.local` then `.env`), `Payload_Type/sage/runtime_db.py` (default `sage.db` path), `Payload_Type/sage/requirements*.txt`, `constraints.txt`, the repo's local restart script (env defaults it applies); `mythic-container` `logging.py`/`config.py` (`DEBUG_LEVEL`); Mythic `Mythic_CLI` (`debug_level`, `stop`/`start`/`restart`/`remove`/`add`/`logs`, loopback port bindings) |
 | `configuration/observability` | `skills/phoenix-traces/`, `Payload_Type/sage/container/`, `Payload_Type/sage/ai/phoenix_tracing.py`, `Payload_Type/sage/ai/langgraph/kernel_tracing.py`, `Payload_Type/sage/main.py` (tracer registration, `SIGUSR1` stack dump) |
@@ -200,3 +201,40 @@ CHANGELOG section, and the README diff, with full diffs for every mapped file):
   traced).
 - No GitHub release object existed for `v0.3.0` at verification time, so no measured
   qualification result is quoted; pages state what the README says the release notes report.
+
+Edit files from Mythic (2026-11-20), `configuration/edit-files-from-mythic` (new) and links from
+`configuration/environment`, `configuration/runtime-state`, `guides/bloodhound`, `guides/chat-config`,
+`understand/how-sage-works`, and `reference/tools-and-capabilities`, against tag `v0.3.0` at `95b3c99`:
+
+- Prompt behavior from `prompt_loader.py` and `prompts/README.md`: files are read with no cache at
+  each agent build, rendered with `str.format()`, fall back to the raw body on a render error, and
+  the `tools` header only filters the code's candidate tools. The header example is the top of
+  `mythic_operator.md`. Upstream inconsistency: `prompts/README.md` opens with "Edit a file,
+  restart Sage" while its own step 2 and the loader say a new chat is enough; the docs follow the
+  loader. Flagged upstream.
+- TTP and drop-zone timing from `ttp_library.py` (`load_ttp` and `iter_ttps` read from disk on every
+  call) and `staged_tools.scan` (per call, called from `list_staged_tools` and `/tools staged`).
+  `ttps/contracts/` handling from its README.
+- File browser root from `mythic-container==0.7.0rc9` `listFile`/`getFile`/`writeFile` (the folder
+  of `sys.argv[0]`, which is `/Mythic/` per the Dockerfile `WORKDIR` and `CMD`). UI labels, the
+  Upload File button, and the absence of a container restart control from Mythic `MythicReactUI` at
+  `v4.0.0rc7-3-g3e07d356`, whose `VERSION` is `4.0.8`; the same labels are present at `v4.0.0rc9`
+  (`VERSION` 4.0.11). Roles from Hasura action permissions and the `noSpectators` route group.
+- Reinstall and mount behavior from `Mythic_CLI` at the same commit: `InstallFolder` removes the
+  existing service directory before copying; installed services bind-mount the service directory
+  at `/Mythic/` unless `<service>_use_volume` is `true`.
+- The `.env` paragraph on `configuration/environment` now says applying a change needs one restart
+  on the host. The Sage README and `.env` header say "no shell, no `docker cp`, no sudo", which holds
+  for editing but not for the restart in Mythic 4.0.8; flagged upstream.
+- File browser paths: the Container Files dialog opens in the service directory itself and labels
+  that top folder **root** (`BrowserPath` in the dialog), so `.env`, `prompts/`, `ttps/`, and
+  `tools/` sit at its top level. Pages give browser paths relative to it and keep
+  `InstalledServices/sage/` for host commands, after operator feedback that host-relative paths
+  read as if the browser started above the service directory.
+- Screenshots from a live Mythic 4.0.8 install, captured 2026-11-20
+  (`assets/screens/installed-services-view-files.png`, `container-files-root.png`,
+  `container-files-edit-prompt.png`), confirm the Chat tab, View Files, the dialog title
+  (sage's Current Files, with the Container Files list inside it), the root breadcrumb, the row
+  buttons, and the editor's Submit. Saving an edit, uploads, and the restart step were not
+  exercised; uploads of large binaries through the file browser are untested.
+- The recorded baseline above was not moved.

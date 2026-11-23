@@ -43,9 +43,11 @@ If you run Mythic via Docker Desktop or OrbStack on macOS, the service directory
 bind-mounts into the Sage container goes through a file-sharing layer that does not support
 SQLite's locking, and Sage reports `unable to open database file`.
 
-Move both databases to a path inside the container. Add these lines to
-`InstalledServices/sage/.env` (from the Mythic UI's container file browser or from your Mythic
-directory), then restart the Sage container:
+Move both databases to a path inside the container. Add two lines to Sage's `.env`, then restart
+the Sage container. In the Mythic UI's
+[container file browser](/configuration/edit-files-from-mythic), `.env` is in the top folder. On
+the Mythic host it is `InstalledServices/sage/.env`, and these commands, run from your Mythic
+directory, append the lines there:
 
 ```bash
 echo 'PHOENIX_WORKING_DIR=/opt/sage_data' | sudo tee -a InstalledServices/sage/.env

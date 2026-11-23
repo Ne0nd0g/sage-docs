@@ -228,7 +228,9 @@ capability is refused.
 ## Extension points
 
 Three parts of Sage are plain files in the Sage repository, meant for you to edit rather than
-rebuild:
+rebuild. Under Mythic they sit in `InstalledServices/sage/` on the host, and the Mythic web UI's
+container file browser lists their folders in its top folder, so you can change them there; see
+[Edit Sage's files from Mythic](/configuration/edit-files-from-mythic).
 
 - **Agent prompts.** Each agent's system prompt is a markdown file in
   `Payload_Type/sage/prompts/`, one per agent from `supervisor.md` to `sandbox.md`. Edit a file
@@ -245,7 +247,9 @@ rebuild:
 
 `Payload_Type/sage/tools/` is an operator drop zone for tool binaries. It ships **empty**. Sage
 bundles no offensive binaries, and a local image build does not bake the folder's contents into the
-image. Drop a binary in (for example `Rubeus.exe` or `SharpHound.exe`) and Sage can see it through
+image. Drop a binary in (for example `Rubeus.exe` or `SharpHound.exe`), on the Mythic host or
+through the [container file browser](/configuration/edit-files-from-mythic#add-a-tool-binary), and
+Sage can see it through
 `list_staged_tools`, then stage it into Mythic on demand with `ensure_tool_uploaded`, so you do not
 have to upload it by hand. `/tools staged` shows the same inventory in chat.
 
