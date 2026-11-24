@@ -1,6 +1,6 @@
 ---
 title: "Limitations and validated configuration"
-description: "The configuration Sage was last live-validated against, how 0.3.0 was qualified, what that does and does not establish, and the known limits."
+description: "Which Mythic version Sage is tested against, the configuration it was last live-validated on, what that does and does not establish, and the known limits."
 ---
 
 Sage is beta software, and its live validation lags its code. This page states what has been
@@ -15,8 +15,12 @@ engagement around Sage.
 
 ## The validated configuration
 
-The most recent live-validated configuration recorded in the Sage repository is the one recorded
-for `v0.1.0-beta`:
+Sage requires Mythic v4, because native chat containers do not exist before v4. Sage 0.4.0 is
+developed and tested against Mythic `v4.0.8`. Other Mythic v4 builds may work but are untested, and
+0.4.0 had no separate release qualification run.
+
+The most recent full live-validated configuration recorded in the Sage repository is the one
+recorded for `v0.1.0-beta`:
 
 | Component | Validated version |
 |---|---|
@@ -29,18 +33,11 @@ for `v0.1.0-beta`:
 
 Releases from `v0.2.0` on are validated by the offline suite, the repository-boundary guards, the
 repo-hygiene checks, and scripted tests of the assembled chat path; `v0.2.0` had no live-range run.
-
-The `v0.3.0` release qualification runs once, in supervised mode, on a locally built image of the
-release source against Mythic `v4.0.8`, with an Apollo foothold on GOAD and Claude Sonnet 4.6
-through an OpenAI-compatible LiteLLM route. It is one objective request to obtain Domain Admin of
-one GOAD domain from that foothold, plus at most one `proceed` if the request ends without proof,
-within fixed time, token, cost, and approval-card limits, with no operator input other than
-accepting or rejecting cards. Sage `v0.3.0` is published only after that run passes, and its
-[GitHub release notes](https://github.com/MythicAgents/Sage/releases/tag/v0.3.0) report the image,
-architecture, Mythic version, model route, and result. That
-result covers that one configuration and objective. The published image is checked for
-installation, not requalified. The [release notes](/reference/release-notes) record what changed in
-each release.
+The `v0.3.0` release also ran one supervised qualification objective on GOAD against Mythic
+`v4.0.8`, reported in its
+[GitHub release notes](https://github.com/MythicAgents/Sage/releases/tag/v0.3.0); that result
+covers that one configuration and objective. The [release notes](/reference/release-notes) record
+what changed in each release.
 
 ## What is not validated
 
@@ -58,9 +55,10 @@ adapter), and those code paths are not evidence that the configuration works.
   [step](/understand/authority-modes#bounded-supervised-steps) runs until one of its limits or an
   error. When the Supervisor scopes a step to the wrong catalog procedure, the request ends rather
   than re-scoping.
-- **An approved action can be issued twice after a crash.** If Sage stops after issuing an approved
-  supervised action but before it records the result, the resumed request can issue that action
-  again. Check the task list in Mythic before you approve the same action after a restart.
+- **An interrupted approved action can have an unknown outcome.** If Sage restarts after you approve
+  an action but before it saves the result, it never resends the action: your next message names
+  the Mythic task it produced, or says that its outcome is unknown. In that case, check the task
+  list in Mythic before you ask for the same action again.
 - **Auto mode is experimental.** It was not run live on 0.3.0, and it has been exercised only
   against the [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab on earlier development
   builds. That does not establish reliability or generalization on another range or on a
@@ -80,8 +78,14 @@ adapter), and those code paths are not evidence that the configuration works.
 - **Slack delivery is a notice, not a finding.** When configured, Slack receives only a generic
   change notice; review the finding inside Mythic. See
   [Background findings watcher](/guides/findings-watcher).
-- **Restarts drop conversational scope.** After a Sage restart, supervised chat does not restore
-  prior scope and evidence. The Engagement State Ledger survives; restate scope in a fresh channel.
+- **Restart recovery has conditions.** A chat continues after a Sage restart only while `sage.db` is
+  retained and its identity and configuration are unchanged, and Sage settles the requests a restart
+  left open only in an operation with an active bot account assigned. Autonomous work is never
+  restarted. See
+  [What a restart does to your chats](/configuration/runtime-state#what-a-restart-does-to-your-chats).
+- **Coding-agent connections are experimental and do no work yet.** In 0.4.0, `/acp` connects a chat
+  to a Codex worker you build and run yourself, and selects a model; Sage sends it no prompt. See
+  [Connect a coding agent](/guides/coding-agent).
 - **macOS Docker Desktop and OrbStack need a database override.** See
   [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
 

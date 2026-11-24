@@ -32,6 +32,29 @@ When this page and the repository document disagree, the repository document is 
 - The optional Slack hook emits only a fixed generic change notice: never operation, finding,
   host, user, domain, credential, task, or file values. Full findings stay in native Mythic chat
   inside your trusted deployment.
+- Model providers receive everything a request carries, potentially including raw credentials, task
+  output, and file content. Sage does not verify a provider's residency, training, or retention
+  policy; disable provider logging or retention where your rules require it.
+- On the direct OpenAI Responses route, Sage sends requests with `store: false` and replays the
+  history and the model's encrypted reasoning itself. Each request also carries the
+  [safety identifier](/guides/models#openai-safety-identifier), when you set one, and the selected
+  [Daybreak](/guides/models#openai-daybreak) program. Other retention follows your OpenAI project's
+  settings; projects with zero data retention that use Daybreak need Private Safety Processing. Use
+  a named, non-default OpenAI project approved for the program, keep its API key in the `API_KEY`
+  user secret or the container environment rather than plaintext chat configuration, and choose a
+  stable pseudonymous safety identifier that is not a username or email address.
+- `sage.db` keeps the state a chat needs to [continue after a restart](/configuration/runtime-state#what-a-restart-does-to-your-chats),
+  including conversation messages and pending approvals. A paused request's saved state holds
+  identities, counters, and digests, never text bodies or argument values. Restrict access to the
+  file.
+- After a restart, Mythic's short-lived startup token may read Sage's open chat requests and their
+  approval cards, post a notice, close a request, or offer a decided card's saved decision as a
+  Continue/Stop card, and is then discarded. It never runs a task or a model call, and it never
+  applies a decision: only the original decision's own delivery, or your Continue on the channel's
+  own token, can.
+- The optional [coding-agent worker](/guides/coding-agent)'s API key sits in
+  `container/codex/.env`, readable by anyone with Mythic access to Sage's files and by anyone with
+  Docker access to the worker. In this release Sage sends the worker no prompt.
 
 <Warning>
   **Authorized use only.** These sections describe how Sage is built to behave, not a permission

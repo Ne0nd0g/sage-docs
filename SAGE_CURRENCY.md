@@ -25,9 +25,11 @@ page-level line mapping is done during verification, not recorded here.
 |---|---|
 | `index`, `quickstart` | `README.md`, `config.json`, `docs/releases/`, `docs/SECURITY_AND_DATA_HANDLING.md`, `CHANGELOG.md` (Validation) |
 | `understand/**` | `README.md`, `docs/SECURITY_AND_DATA_HANDLING.md`, `docs/architecture/`, `Payload_Type/sage/sage_chat/`, `CHANGELOG.md` (Known issues, Validation) |
-| `guides/using-chat`, `understand/authority-modes` | `README.md`, `Payload_Type/sage/sage_chat/` (`hitl.py`, `slash.py`, `config.py`), `Payload_Type/sage/prompts/`, `Payload_Type/sage/ai/langgraph/` (`step_bounds.py`, `handoff_brief.py`, `request_contract.py`; supervised step limits, delegation briefs, Autonomous Solve in conversation) |
+| `guides/using-chat`, `understand/authority-modes` | `README.md`, `Payload_Type/sage/sage_chat/` (`hitl.py`, `slash.py`, `config.py`, `metadata.py` chips, `restoration.py`), `Payload_Type/sage/ai/langgraph/catalog_binding.py`, `Payload_Type/sage/ai/langgraph/capabilities.py` (catalog candidates, missing-input refusal), `Payload_Type/sage/prompts/`, `Payload_Type/sage/ai/langgraph/` (`step_bounds.py`, `handoff_brief.py`, `request_contract.py`; supervised step limits, delegation briefs, Autonomous Solve in conversation) |
 | `guides/chat-config` | `Payload_Type/sage/sage_chat/models.py` (config options, channel token scopes), Mythic `New AI Chat` dialog |
-| `guides/bloodhound` | `README.md` (Requirements, BloodHound, Ingest readiness), `docs/configuration/BLOODHOUND.md`, `Payload_Type/sage/Dockerfile` (MCP pin, ingest-status patch, baked dir, `UV_NO_SYNC`), `Payload_Type/sage/patches/`, `Payload_Type/sage/ai/bloodhound_config.py` (URL parsing, required tools, diagnostics, ingest contract and job status), `Payload_Type/sage/ai/mcp.py` (`bloodhound_run_args`), `Payload_Type/sage/sage_chat/config.py` (`build_bloodhound_env`), `Payload_Type/sage/sage_chat/slash.py` (`/bloodhound`), `Payload_Type/sage/mcp_tool_policy.json`; Mythic `Mythic_CLI` (installed services use host networking) |
+| `guides/models` | `README.md` (Model configuration, OpenAI Responses and Daybreak, Reasoning effort and tools, Changing the model), `documentation-payload/sage/model-configuration.md`, `Payload_Type/sage/sage_chat/models.py`, `Payload_Type/sage/sage_chat/config.py` (resolution chain, provider checks), `Payload_Type/sage/ai/openai_api.py` (`validate_route`, `adapter_options`), `Payload_Type/sage/sage_chat/model_command.py`, `Payload_Type/sage/ai/langgraph/operator_error.py`, `Payload_Type/sage/sage_chat/service.py` (`_core_config_signature`, held-change notices, `handle_model_command`), `Payload_Type/sage/ai/langgraph/model.py` (foreign reasoning stripped) |
+| `guides/coding-agent` | `Payload_Type/sage/container/codex/` (`README.md`, `SETUP.md`, `.env`, `docker-compose.yml`, `Dockerfile`, `bridge.mjs`), `Payload_Type/sage/ai/acp_connections.py`, `Payload_Type/sage/sage_chat/slash.py` (`/acp`, `/stop`), `Payload_Type/sage/sage_chat/session.py` (`sage_acp_channel_bindings`), `Payload_Type/sage/.env` (`SAGE_ACP_SOCKET`), `Payload_Type/sage/.dockerignore` |
+| `guides/bloodhound` | `Payload_Type/sage/sage_chat/metadata.py` (BloodHound chip), `README.md` (Requirements, BloodHound, Ingest readiness), `docs/configuration/BLOODHOUND.md`, `Payload_Type/sage/Dockerfile` (MCP pin, ingest-status patch, baked dir, `UV_NO_SYNC`), `Payload_Type/sage/patches/`, `Payload_Type/sage/ai/bloodhound_config.py` (URL parsing, required tools, diagnostics, ingest contract and job status, per-turn state, last-failure cache), `Payload_Type/sage/ai/mcp.py` (`bloodhound_run_args`), `Payload_Type/sage/sage_chat/config.py` (`build_bloodhound_env`), `Payload_Type/sage/sage_chat/slash.py` (`/bloodhound`), `Payload_Type/sage/mcp_tool_policy.json`; Mythic `Mythic_CLI` (installed services use host networking) |
 | `understand/limitations` | `README.md` (Requirements, Limitations), `CHANGELOG.md` (Validation), `docs/releases/` |
 | `guides/troubleshooting` | Error strings and behaviors drawn from the pages it links; re-check whenever those pages change |
 | `reference/release-notes` | `CHANGELOG.md`, `docs/releases/` |
@@ -36,8 +38,8 @@ page-level line mapping is done during verification, not recorded here.
 | `guides/findings-watcher` | `Payload_Type/sage/sage_chat/` (findings watcher) |
 | `guides/engagement-ledger` | `Payload_Type/sage/ai/langgraph/` (`engagement_store.py`, `engagement_ledger.py`, `engagement_state.py`, `proof_boundary.py`, `effect_rules.py`, `step_ledger.py` (supervised step gains, attribution window), and the reconcile and evidence tools in `mythic_tools.py`), `Payload_Type/sage/sage_chat/slash.py` (`/state`), `Payload_Type/sage/sage_chat/` (operation memory, report identity/observations), `Payload_Type/sage/runtime_db.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py` |
 | `configuration/environment` | `config.json`, `Payload_Type/sage/dotenv_bootstrap.py`, `Payload_Type/sage/config.py`, `Payload_Type/sage/.env` (container-wide settings), `Payload_Type/sage/sage_chat/models.py` (option text), `Payload_Type/sage/ai/langgraph/step_bounds.py`, `Payload_Type/sage/ai/langgraph/step_ledger.py` |
-| `configuration/edit-files-from-mythic` | `Payload_Type/sage/prompts/` (`README.md`, file headers), `Payload_Type/sage/ai/langgraph/prompt_loader.py` (read per agent build, `str.format()` rendering and fallback, `tools` filter), `Payload_Type/sage/ai/langgraph/ttp_library.py` (read per lookup, skip rules), `Payload_Type/sage/ttps/contracts/README.md`, `Payload_Type/sage/ai/langgraph/staged_tools.py` (`binary_filename` index, per-call scan), `Payload_Type/sage/dotenv_bootstrap.py` (read once at startup), `Payload_Type/sage/Dockerfile` (`WORKDIR /Mythic/`), `Payload_Type/sage/requirements.txt` (`mythic-container` pin); `mythic-container` `mythic_service.py` (file browser rooted at the running script's folder); Mythic `MythicReactUI` Installed Services Chat tab and Container Files dialog (labels), `hasura-docker/metadata/actions.yaml` and `mythic-docker` `initialize.go` (`noSpectators` file routes), `Mythic_CLI` (`installservice.go` reinstall replaces the directory, `serviceMetadata.go` `/Mythic/` bind mount and `sage_use_volume`), no container restart in the 4.0.8 UI |
-| `configuration/runtime-state` | `Payload_Type/sage/runtime_db.py`, `Payload_Type/sage/ai/langgraph/engagement_store.py` (ledger tables, legacy-file guard), `Payload_Type/sage/ai/langgraph/engagement_ledger.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py`, `Payload_Type/sage/container/`, Mythic CLI (`stop`/`start`) |
+| `configuration/edit-files-from-mythic` | `Payload_Type/sage/prompts/` (`README.md`, file headers, `step_bounds`), `Payload_Type/sage/ai/langgraph/step_bounds.py` (`front_matter_bounds`), `Payload_Type/sage/ai/langgraph/prompt_loader.py` (read per agent build, `str.format()` rendering and fallback, `tools` filter), `Payload_Type/sage/ai/langgraph/ttp_library.py` (read per lookup, skip rules), `Payload_Type/sage/ttps/contracts/README.md`, `Payload_Type/sage/ai/langgraph/staged_tools.py` (`binary_filename` index, per-call scan), `Payload_Type/sage/dotenv_bootstrap.py` (read once at startup), `Payload_Type/sage/Dockerfile` (`WORKDIR /Mythic/`), `Payload_Type/sage/requirements.txt` (`mythic-container` pin); `mythic-container` `mythic_service.py` (file browser rooted at the running script's folder); Mythic `MythicReactUI` Installed Services Chat tab and Container Files dialog (labels), `hasura-docker/metadata/actions.yaml` and `mythic-docker` `initialize.go` (`noSpectators` file routes), `Mythic_CLI` (`installservice.go` reinstall replaces the directory, `serviceMetadata.go` `/Mythic/` bind mount and `sage_use_volume`), no container restart in the 4.0.8 UI |
+| `configuration/runtime-state` | `README.md` (restart contract), `Payload_Type/sage/sage_chat/restoration.py`, `Payload_Type/sage/sage_chat/session.py` (channel session records), `Payload_Type/sage/sage_chat/service.py` (startup settlement), `Payload_Type/sage/sage_chat/hitl.py` (Continue/Stop card), `Payload_Type/sage/runtime_db.py`, `Payload_Type/sage/ai/langgraph/engagement_store.py` (ledger tables, legacy-file guard), `Payload_Type/sage/ai/langgraph/engagement_ledger.py`, `skills/sage-goad-reset/scripts/engagement_ledger_migrate.py`, `Payload_Type/sage/container/`, Mythic CLI (`stop`/`start`) |
 | `configuration/run-from-source` | `README.md` (Requirements, Local development, `.env` loading), `Payload_Type/sage/main.py`, `Payload_Type/sage/dotenv_bootstrap.py` (`.env.local` then `.env`), `Payload_Type/sage/runtime_db.py` (default `sage.db` path), `Payload_Type/sage/requirements*.txt`, `constraints.txt`, the repo's local restart script (env defaults it applies); `mythic-container` `logging.py`/`config.py` (`DEBUG_LEVEL`); Mythic `Mythic_CLI` (`debug_level`, `stop`/`start`/`restart`/`remove`/`add`/`logs`, loopback port bindings) |
 | `configuration/observability` | `skills/phoenix-traces/`, `Payload_Type/sage/container/`, `Payload_Type/sage/ai/phoenix_tracing.py`, `Payload_Type/sage/ai/langgraph/kernel_tracing.py`, `Payload_Type/sage/main.py` (tracer registration, `SIGUSR1` stack dump) |
 | `reference/tools-and-capabilities` | `docs/reference/TOOLS_AND_CAPABILITIES.md`, `Payload_Type/sage/tools/`, `Payload_Type/sage/.dockerignore` (drop zone excluded from images), `Payload_Type/sage/ai/langgraph/staged_tools.py` (`list_staged_tools`), `Payload_Type/sage/ai/langgraph/capabilities.py` (capability catalog), `Payload_Type/sage/sage_chat/models.py` (declared channel scopes), `Payload_Type/sage/ai/langgraph/operation_context.py` (event-log engagement marker), `Payload_Type/sage/ai/langgraph/model.py` (Supervisor tool binding), `Payload_Type/sage/ai/langgraph/mythic_capability_adapter.py` (payload profiles), `Payload_Type/sage/ai/langgraph/mythic_tools.py` (tool safety, scopes, discovery and tasking), `Payload_Type/sage/ai/langgraph/command_parameter_schema.py`, `Payload_Type/sage/ai/langgraph/command_builder.py`, `Payload_Type/sage/ai/comparison_tool_surface.py` (agent-visible tool lists), `Payload_Type/sage/prompts/` (frontmatter tool lists) |
@@ -238,3 +240,62 @@ Edit files from Mythic (2026-11-20), `configuration/edit-files-from-mythic` (new
   buttons, and the editor's Submit. Saving an edit, uploads, and the restart step were not
   exercised; uploads of large binaries through the file browser are untested.
 - The recorded baseline above was not moved.
+
+Sage 0.4.0 pre-release pass (2026-11-23), against Sage `dev` at `2bb7564` (94 commits after
+`v0.3.0`; no `v0.4.0` tag yet). The recorded baseline above was not moved: the final pass runs
+against the tag.
+
+- Restarts: rewrote `configuration/runtime-state` "What a restart does to your chats" from the README
+  restart contract and `restoration.py` notice texts (restored-session notice, Continue saved decision /
+  Stop card, startup-message settlement, bot-account condition, never-resent approved actions), and
+  followed it on `guides/using-chat` (new "After Sage restarts"), `guides/troubleshooting` (three
+  entries), `understand/limitations`, and `guides/engagement-ledger`. The double-issue known limit is
+  replaced: `restoration.py` closes an interrupted approved action as never resent or outcome unknown.
+- Models: new `guides/models`; chat fields and environment rows for `SAGE_OPENAI_API`,
+  `SAGE_OPENAI_ACCESS_PROGRAM`, `SAGE_OPENAI_SAFETY_IDENTIFIER` and `SAGE_REASONING_EFFORT`
+  (`models.py`, `openai_api.py`); Model chip and `/model` (`metadata.py`, `model_command.py`); a
+  provider-rejection troubleshooting entry (`operator_error.py`); the Responses data row on
+  `understand/security-and-data-handling` (from the security document's new row).
+- Coding agent: new `guides/coding-agent` (experimental, configuration only), `/acp` rows on
+  `reference/slash-commands`, `SAGE_ACP_SOCKET` on `configuration/environment`, the worker `.env` row on
+  `configuration/edit-files-from-mythic`, and reinstall notes on `configuration/runtime-state`.
+- BloodHound: four chip states, the single loss notice, the agent's explanation and `Last failure`
+  (`bloodhound_config.py` `observe_bloodhound_state`, `_remember_failure`) on `guides/bloodhound`,
+  `guides/using-chat` and `guides/troubleshooting`; collection retrieval despite collector diagnostics
+  (`cb78ea3`).
+- Supervised steps: per-specialist `step_bounds` and overrides (`step_bounds.py`, prompt headers),
+  the remaining-budget line, the tool-free final answer, scope-refused proposals, catalog binding,
+  the missing-input refusal and operator-named proof hosts on `understand/authority-modes`,
+  `configuration/environment` and `configuration/edit-files-from-mythic`; the verification line, the
+  `Not issued` line and the no-step notice (`step_bounds.py` `verdict_lines`, `model.py`) on
+  `guides/using-chat`; edited credential rows and reviewed material on `guides/engagement-ledger`; the
+  Conversation tool menu (`ab49f5b`) on `understand/authority-modes` and
+  `reference/tools-and-capabilities`; the previous-reply block and attributed reports on
+  `understand/how-sage-works`.
+- One later commit, `9ad4cd4` (operator-named DCSync accounts and an explicit re-verify), adds a
+  paragraph on `understand/authority-modes` from its commit message, `requested_dcsync_accounts`
+  (`capabilities.py`) and its recorded request rows. No other page was re-verified against it.
+- Mythic wording (operator decision, 2026-11-23): `index`, `quickstart`, `configuration/run-from-source`
+  and `understand/limitations` now say Sage requires Mythic v4 and 0.4.0 is developed and tested
+  against Mythic `v4.0.8` (the lab version of the 0.3.0 qualification and the 2026-11-20 screenshots);
+  the 0.3.0 qualification detail stays in the release notes. The Sage README "Mythic target"
+  paragraph still names the 0.3.0 qualification; flagged upstream.
+- Resolved upstream flags from 2026-11-20: `2bb7564` changed the prompts README to "start a new chat"
+  and the README and `.env` header to say a `.env` change needs `sudo ./mythic-cli restart sage`.
+- New upstream flags: `container/codex/SETUP.md` ("A Sage redeploy keeps this directory") and the
+  worker README (deploy sync never overwrites `.env`) describe the maintainer deploy script, while
+  `mythic-cli install` removes the service directory; SETUP step 5 uses `docker restart sage`; the
+  worker `Dockerfile` header names a `docker-compose.example.yml` that does not exist;
+  `validate_route` refuses an explicit Daybreak Off without Responses while the README says only
+  "Daybreak without Responses"; `SAGE_REASONING_EFFORT` is not in `OptionalUserSecrets` although the
+  field text and README name a user-secret fallback (the docs omit that fallback); the CHANGELOG
+  `[Unreleased]` section has only the step-bounds entry.
+- Confirmed unchanged at `2bb7564`: `comparison_tool_surface.py` (35 agent-visible tools),
+  `SCOPE_REQUIREMENTS`, `_CHANNEL_TOKEN_SCOPES`, the 15 capability names, `mcp_tool_policy.json`,
+  `ssl_bootstrap.py`, tracing modules, `Dockerfile`; so `guides/custom-tls`, `guides/mcp-servers`,
+  `guides/findings-watcher` and `configuration/observability` are untouched. `/model` worked live
+  with a token holding `apitoken.write`, `chat-ai.write` and `callback.read` (the model-switch check in
+  `skills/sage-focused-capability-tests/`), a subset of the declared channel scopes.
+- Not done yet: `reference/release-notes` `v0.4.0` (waits on the CHANGELOG), the screenshot
+  recaptures (`assets/chat-chips.png`, `assets/new-ai-chat/model-selection.png` and new shots), and the
+  re-diff from `2bb7564` to the tag (more supervised work may land first).

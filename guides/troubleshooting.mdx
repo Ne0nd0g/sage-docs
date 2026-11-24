@@ -21,13 +21,15 @@ when Mythic runs under Docker Desktop or OrbStack on macOS, where the bind-mount
 directory goes through a file-sharing layer. Move the databases inside the container with two
 `.env` lines: see [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
 
-## Autonomous solves are refused, or BloodHound shows as not connected
+## Autonomous solves are refused, or the BloodHound chip is not connected
 
-The BloodHound MCP connection was never established. The container log shows a `WARNING` that
-starts `BloodHound auto-connect (chat): BloodHound MCP connect not attempted` and names the
-credentials that are missing, never their values. Ordinary conversation and supervised chats keep
-working; autonomous solves fail closed because they cannot plan without the graph. Set the
-credentials and run `/bloodhound`: see
+The BloodHound chip shows `not configured` when no BloodHound URL or token is set for the chat, and
+`unavailable` when BloodHound is configured but did not connect or did not answer a read; hover
+over the chip for the reason. When a connect fails, the container log shows a `WARNING` that starts
+`BloodHound auto-connect (chat):` and names the missing credentials, never their values. Sage does
+not retry a credential set that already failed, and every later turn repeats the cause as
+`Last failure: …`. Ordinary conversation and supervised chats keep working; autonomous solves fail
+closed because they cannot plan without the graph. Fix the credentials and run `/bloodhound`: see
 [When BloodHound is not connected](/guides/bloodhound#when-bloodhound-is-not-connected).
 
 A bare `McpError: Connection closed` with no explanation means the Sage build predates that
@@ -85,12 +87,40 @@ Sage stopped on its own or that ended blocked can still show as `complete`. The 
 states how the request ended. Since `v0.3.0`, Sage also records it as `turn_outcome` in the final
 message's metadata.
 
-## Sage lost the conversation after a restart
+## After a restart, the channel accepts no new message
 
-This is expected. After a Sage restart, supervised chat does not restore prior conversational scope
-and evidence. The Engagement State Ledger, `/state`, and `/report` are still available. Start a fresh
-channel and restate scope and evidence. See
+A restart leaves the request Sage was answering open in Mythic, and Mythic accepts no new prompt in
+that channel until it ends. Sage closes or settles such requests when Mythic sends the container
+its startup message, which Mythic sends only to an operation with an active bot account assigned to
+it. Without one, use Cancel on the open request in Mythic to free the channel. See
+[Requests a restart left open](/configuration/runtime-state#requests-a-restart-left-open).
+
+## A Continue saved decision / Stop card appeared after a restart
+
+You answered an approval card while Sage was down or starting, and Sage cannot tell whether Mythic
+will still deliver that decision. It applies nothing until your original decision arrives or you
+answer the new card. **Continue** applies the decision exactly as you made it (an approval runs the
+action once, a rejection runs nothing); **Stop** discards it. If the card, the session, or the
+paused action changed in the meantime, nothing runs and the request closes with the reason.
+
+## Sage asks for a new chat after a restart
+
+Since `v0.4.0`, an existing chat continues after a Sage restart and Sage says so in the channel.
+Sage asks for a new chat only when the session ended on purpose (stop, cancel, an error, or a
+changed configuration or API token), when its saved state cannot be read, or when a chat from
+before restorable sessions cannot be matched to one saved conversation; the reply names which.
+Archiving `sage.db` also removes every saved session. The Engagement State Ledger, `/state`, and
+`/report` are unaffected. See
 [What a restart does to your chats](/configuration/runtime-state#what-a-restart-does-to-your-chats).
+
+## The provider rejects the chat's model or settings
+
+When the provider refuses a request, for example a reasoning effort with tools on Chat Completions,
+a Responses-only model on Chat Completions, or a Daybreak access error, Sage's error names the
+setting to change, the value it sent and where that value came from, and whether the chat
+continues. Changing **Model**, **OpenAI API**, **OpenAI Daybreak**, **OpenAI Safety Identifier**, or
+**Reasoning Effort** keeps the conversation; a new API key, provider, or API endpoint starts a new
+chat. See [When the provider refuses a request](/guides/models#when-the-provider-refuses-a-request).
 
 ## A reinstall fails on root-owned files
 

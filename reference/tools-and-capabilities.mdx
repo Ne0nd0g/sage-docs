@@ -61,7 +61,9 @@ through ordinary tasking and ingest the result with `ingest_collection`.
 
 Every tool the Sage agents can call is **read-only**, **guarded**, or **staging**. Read-only tools
 never prompt for approval and cannot change target state. Guarded tools are approval-gated in
-supervised mode and denied in conversation mode, and only they can change target state. The one
+supervised mode and denied in conversation mode, and only they can change target state. In
+conversation mode the model is not even offered guarded or staging tools, or guarded MCP tools, and
+a call that names one anyway is still refused before it reaches Mythic. The one
 staging tool, `ensure_tool_uploaded`, writes only Mythic's operation file store and reaches no
 callback: it needs no approval in supervised mode and is denied in conversation mode. Every tool
 carries its classification in source, CI fails if one is missing, and an unclassified method

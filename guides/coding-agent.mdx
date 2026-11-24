@@ -1,0 +1,218 @@
+---
+title: "Connect a coding agent (experimental)"
+description: "Connect a Sage chat to a Codex worker you run yourself, over the Agent Client Protocol, with /acp. In this release the connection covers status and model selection only."
+---
+
+Sage can connect a chat channel to a Codex coding agent through the
+[Agent Client Protocol](https://agentclientprotocol.com) (ACP). Codex runs in a separate worker
+container that you build and start yourself on the Mythic host, outside Mythic and Sage. The
+`/acp` slash command then connects the chat to that worker, reports what it sees, and selects the
+model Codex would use.
+
+<Warning>
+  **Experimental, and configuration only.** In this release `/acp` connects, reports status, and
+  selects a model. Sage sends Codex no prompt, so no coding happens and no model request is made.
+  Much of this feature remains to be built, and its commands and setup may change between releases.
+  Sage does not start or manage the worker: you need a shell on the Docker host to build and run it,
+  and nothing on this page works until that container is running.
+</Warning>
+
+## What the connection does
+
+Each chat channel has its own connection and its own model choice. When you run
+`/acp connect codex`, Sage opens the worker's socket, negotiates ACP protocol 1, and creates a
+read-only session. It reports the authentication state it observes and always marks provider access
+as unverified, because it never sends the coding agent a model request.
+
+On that session Sage advertises no filesystem or terminal capability, passes no MCP servers, and
+refuses every permission request the agent makes. No Sage model sees or drives the connection; the
+command runs without a model call. Only the chosen profile and model are saved, in the
+`sage_acp_channel_bindings` table of `sage.db`, so after a restart a chat shows `disconnected` until
+someone reconnects it. Nothing reconnects on its own. The findings watcher does not offer `/acp`.
+
+## How it is wired
+
+```text
+Sage container ── private Unix socket ──> worker: bridge ─ stdio ─> codex-acp 2.9.0 ─> Codex 0.171.0
+```
+
+The worker runs beside the Sage container on the same Docker host. The two containers share only
+the `.sage_acp` directory inside Sage's service directory, which holds the socket. For each
+connection, the worker's bridge starts one Codex adapter in its own process group, with its own
+working directory and Codex home on a temporary filesystem, and removes that state when the
+connection ends. The bridge relays ACP messages unchanged and logs each message's direction, method,
+and id, never its parameters. A message over 1 MiB ends the connection.
+
+The worker's files ship with Sage in `container/codex/`, relative to the top folder of Mythic's
+container file browser (`InstalledServices/sage/container/codex/` on the Mythic host). See
+[Edit Sage's files from Mythic](/configuration/edit-files-from-mythic#where-the-files-live) for how
+those paths map.
+
+## Set up the Codex worker
+
+You need Sage running as Mythic's `sage` container, a shell on the Docker host, and an OpenAI API
+key. Run the host commands from your Mythic directory, the one that holds `mythic-cli`. The
+`docker` commands assume your user may run Docker; prefix them with `sudo` if it may not.
+
+<Steps>
+  <Step title="Fill in the worker settings">
+    In Mythic's container file browser for Sage, open `container/codex/.env` and set these values:
+
+    | Setting | Value |
+    |---|---|
+    | `CODEX_API_KEY` | Your OpenAI API key. It can be the same key Sage uses. |
+    | `CODEX_MODEL` | Optional default model ID, from the list `/acp models` shows. Leave it empty for Codex's own default. |
+    | `SAGE_CODEX_UID`, `SAGE_CODEX_GID` | The numeric owner of Sage's service directory. `1000` unless the check in step 3 prints other numbers. |
+    | `SAGE_CODEX_NETWORK` | `bridge` lets Codex reach its provider. `none` blocks all network access, for a connection-only check. |
+
+    Anyone who can read Sage's files can read this key, as with any key in Sage's own `.env`.
+  </Step>
+  <Step title="Point Sage at the worker">
+    In the same file browser, open Sage's own `.env` in the top folder, and set this line, removing
+    the leading `#`:
+
+    ```bash
+    SAGE_ACP_SOCKET=/Mythic/.sage_acp/acp.sock
+    ```
+
+    The path must be absolute and at most 107 bytes, the Unix socket path limit.
+  </Step>
+  <Step title="Create the socket directory">
+    On the host, check who owns Sage's service directory:
+
+    ```bash
+    stat -c '%u %g' InstalledServices/sage
+    ```
+
+    The two numbers must match `SAGE_CODEX_UID` and `SAGE_CODEX_GID` from step 1. Then create the
+    private directory the two containers share, replacing `1000 1000` if the check printed other
+    numbers:
+
+    ```bash
+    sudo install -d -m 0700 -o 1000 -g 1000 InstalledServices/sage/.sage_acp
+    ```
+  </Step>
+  <Step title="Build and start the worker">
+    ```bash
+    cd InstalledServices/sage/container/codex && docker compose up -d --build
+    ```
+
+    The first build downloads about 700 MB. When the worker is ready, its log shows
+    `"event":"listening"`:
+
+    ```bash
+    docker logs sage-codex
+    ```
+
+    Docker keeps the worker running after that (`restart: unless-stopped`).
+  </Step>
+  <Step title="Restart Sage">
+    Sage reads its `.env` only when it starts. From your Mythic directory:
+
+    ```bash
+    sudo ./mythic-cli restart sage
+    ```
+  </Step>
+  <Step title="Connect from a Sage chat">
+    In a Sage channel, run `/acp connect codex`. The reply shows transport `connected`, ACP v1, the
+    observed authentication state, and provider access as unverified. Then run `/acp models` to see
+    the model IDs Codex offers, and `/acp model <id>` with an exact ID from that list to select one.
+
+    <Frame caption="The reply to /acp connect codex. The worker holds a key, but provider access stays unverified because Sage sends the coding agent no model request. No model is saved yet, so Codex uses its own default.">
+      ![The Coding agent connection table: Profile codex, saved for this channel; Transport connected; Protocol ACP v1; Agent codex-acp 2.9.0; Authentication (observed) authenticated; Provider access unverified; Effective model gpt-6.2-sol; Saved model agent default. A note below says authenticated means the agent holds a credential, not that the provider accepts it](/assets/screens/acp-connect.png)
+    </Frame>
+  </Step>
+</Steps>
+
+## The `/acp` commands
+
+| Command | What it does |
+|---|---|
+| `/acp` or `/acp status` | Shows this chat's connection: profile, transport, protocol, observed authentication, effective model, and saved model. |
+| `/acp connect codex` | Connects this chat to the worker and reapplies its saved model if the agent still advertises it. |
+| `/acp models` | Lists the model IDs the agent advertises, with the current one marked. |
+| `/acp model <id>` | Selects that model for this chat. Only an exact advertised ID is accepted, not a display name. |
+| `/acp disconnect` | Closes this chat's connection and clears its saved selection. |
+
+`/stop` also closes the chat's coding-agent connection, and keeps its saved selection so a later
+`/acp connect codex` restores it. The chat accepts no secrets or commands for the worker: the
+deployer configures it in `container/codex/.env`. See
+[Slash commands](/reference/slash-commands) for the rest of Sage's commands.
+
+## Change the key or model
+
+Edit `container/codex/.env` in Mythic, recreate the worker from your Mythic directory, then run
+`/acp connect codex` again in each chat:
+
+```bash
+cd InstalledServices/sage/container/codex && docker compose up -d --force-recreate
+```
+
+`/acp model <id>` still changes the model per chat without touching `.env`.
+
+## Look inside or remove the worker
+
+There is no long-running Codex session to attach to: each `/acp connect` starts its own Codex
+process, with its files under `/state/conn-*/`, deleted when the chat disconnects. To open a shell
+in the worker as its non-root user, or to follow its log (each message's method, never its content):
+
+```bash
+docker exec -it sage-codex /bin/sh
+docker logs -f sage-codex
+```
+
+To stop and remove the worker, from `InstalledServices/sage/container/codex`:
+
+```bash
+docker compose down
+```
+
+## Security notes
+
+The worker runs as a non-root user with a read-only root filesystem, all capabilities dropped, no
+published port, and no Docker socket. Sage does not start it, because starting containers would
+need the host Docker socket, which is equivalent to root on the host.
+
+The API key in `container/codex/.env` is readable by anyone with Mythic access to Sage's files and,
+inside the worker, by anyone with Docker access to it (`docker inspect`, `docker exec`). Docker
+Compose cannot give a read-only service an environment-sourced secret, so the key travels as an
+environment variable that the bridge passes only to the Codex adapter. If you prefer a file, mount
+one at `/run/secrets/codex_api_key` in the worker; the bridge reads it first. Sage's image builds
+exclude every `.env` file, including this one.
+
+With networking enabled, Codex contacts its provider while creating a session (for its model list
+and connection setup), even though Sage sends no prompt. Set `SAGE_CODEX_NETWORK=none` to block that
+for a connection-only check. An `authenticated` state means Codex holds a key; it does not prove the
+provider accepts it.
+
+## Troubleshooting
+
+| `/acp` shows | What to do |
+|---|---|
+| Transport `unconfigured` | `SAGE_ACP_SOCKET` is not set. Do step 2, then restart Sage (step 5). |
+| `The coding-agent worker is unavailable (FileNotFoundError …)` | The worker is not running or the socket directory is wrong. Check `docker ps`, then repeat steps 3 and 4. |
+| `The coding-agent worker is unavailable (PermissionError …)` | The worker's user does not match Sage's. Fix steps 1 and 3, then recreate the worker. |
+| `docker logs sage-codex` shows `"event":"server_error"` | The socket directory is missing or owned by someone else. Repeat step 3, then step 4. |
+| `unauthenticated` and "No usable API-key configuration" | `CODEX_API_KEY` is empty. Set it (step 1), then recreate the worker. |
+| `Sage already holds 4 coding-agent connections` | Run `/acp disconnect` in a chat you no longer need. |
+| Connecting takes about 20 seconds | Normal with `SAGE_CODEX_NETWORK=none`: Codex retries a model-list refresh. |
+
+## Run Sage from a checkout
+
+If you [run Sage from source](/configuration/run-from-source) instead of as Mythic's container, use
+the same compose file from `Payload_Type/sage/container/codex` in your checkout. Create
+`Payload_Type/sage/.sage_acp` in step 3, and set `SAGE_ACP_SOCKET` to that directory's absolute path
+plus `/acp.sock`, within the 107-byte limit.
+
+## Limits
+
+- **No coding.** Sage sends Codex no prompt, makes no model request through it, and gives it no
+  files, terminal, or MCP servers. The connection proves only that Sage can reach the worker and set
+  its model.
+- **Codex only.** `codex` is the only coding-agent profile.
+- **Per chat, and not restored.** Each chat holds its own connection. After a Sage or worker restart,
+  every chat shows `disconnected` until you run `/acp connect codex` again; its saved model is kept.
+- **Four connections.** Sage and the worker each allow at most four live connections at once.
+- **A reinstall removes the worker's settings.** `mythic-cli install` over an existing Sage deletes
+  `InstalledServices/sage/`, including `container/codex/.env` (with its API key) and `.sage_acp/`.
+  Save your `container/codex/.env` before you reinstall, then repeat steps 1 through 5.

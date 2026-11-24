@@ -10,7 +10,7 @@ allowed to change, not just what it can see.
 
 | Mode | What Sage can do | When to use |
 |---|---|---|
-| `conversation` (default) | Reads Mythic and BloodHound state, queries read-only tools, and answers. Cannot fire a guarded/offensive action, even with Autonomous Solve on. | Asking questions, reviewing the graph, getting tradecraft advice, planning. The safe default. |
+| `conversation` (default) | Reads Mythic and BloodHound state, queries read-only tools, and answers. Cannot fire a guarded/offensive action, even with Autonomous Solve on; the model is not even offered the guarded tools. | Asking questions, reviewing the graph, getting tradecraft advice, planning. The safe default. |
 | `supervised` | Proposes guarded actions; each one waits for your approval before it runs. | Interactive engagement work where you want Sage to act but keep a hand on every trigger. |
 | `auto` (experimental) | Runs the autonomous observe → select → execute → verify loop with no per-action approval. Exercised only against the GOAD lab. | Research and evaluation against a prepared lab objective with a live callback and an ingested graph. |
 
@@ -54,17 +54,34 @@ In supervised mode the Supervisor works through specialists one step at a time, 
 each step. A step returns control to the Supervisor after its one guarded action has run or been
 rejected, or earlier when it reaches a limit:
 
-| Limit | Default | Setting |
+| Limit | Shipped value | Where it is set |
 |---|---|---|
-| Tool calls in one step | 20 | `SAGE_STEP_MAX_TOOL_CALLS` |
-| Active time in one step | 600 seconds | `SAGE_STEP_MAX_ACTIVE_SECONDS` |
-| Consecutive tool errors | 3 | `SAGE_STEP_MAX_CONSECUTIVE_ERRORS` |
+| Tool calls in one step | 20 | `tool_calls`, or `SAGE_STEP_MAX_TOOL_CALLS` |
+| Active time in one step | 600 seconds | `active_seconds`, or `SAGE_STEP_MAX_ACTIVE_SECONDS` |
+| Consecutive tool errors | 3 | `consecutive_errors`, or `SAGE_STEP_MAX_CONSECUTIVE_ERRORS` |
+
+Each specialist declares its own limits in the `step_bounds:` header of its
+[prompt file](/configuration/edit-files-from-mythic#edit-an-agent-prompt), and every specialist
+ships with the values above. A valid `SAGE_STEP_MAX_*` value in the
+[container environment](/configuration/environment#container-wide-settings) overrides that limit
+for every specialist. Every model call in a step carries a line from Sage with the tool calls and
+active time the step has left, and a batch of parallel tool calls runs only as many calls as the
+step has left; the rest are removed before anything runs.
 
 Time spent waiting on your approval, and time inside the guarded action itself (including the
 Mythic task wait), never counts as active time. After its action the specialist may still read and
 summarize the result, but a second guarded proposal in the same step is removed before any approval
-card appears and needs a new step. Reaching a limit is not a failure, and returning control never
-cancels a task on the target.
+card appears and needs a new step. A proposal that falls outside the step's scope is also removed
+before any card; the step outcome names it, and if the request ends there, the closing lists it as
+neither approved nor executed.
+
+When a step reaches a limit, the specialist gets one last model call with no tools offered, for at
+most 30 seconds, so it can report what it found, and Sage passes that answer to the Supervisor
+unchanged. If the call returns no text, fails, runs out of time, or returns an answer that
+supervised filtering would alter, Sage sends a notice saying so instead, and nothing more runs in
+that step. The step still ends at its limit, and its partial answer never counts as a finished
+answer. Reaching a limit is not a failure, and returning control never cancels a task on the
+target.
 
 Before a delegation to the Mythic Operator starts, Sage checks its brief: the callback must be one
 Sage has observed, targets must be named by you or already known to Sage, and any task or credential
@@ -74,6 +91,41 @@ Sage hands the Supervisor a typed outcome (the action ran, was rejected, fell ou
 scope, reached a limit, left a task pending, or finished) with the tasks the step issued, read from
 Mythic rather than taken from the specialist's summary. These limits do not apply in auto mode or
 conversation mode.
+
+### Catalog steps are bound to current evidence
+
+When the Supervisor scopes a step to a [catalog capability](/reference/tools-and-capabilities#the-capability-layer)
+other than graph collection, the step must select one of the actions that current evidence
+supports. Sage lists those candidates in the Supervisor's ledger view, drawn from the Engagement
+State Ledger, the live callbacks it reads from Mythic, the current account contexts, and what the
+request has already tried. The approval card then shows exactly the bound action: its procedure,
+callback, targets, and inputs. After you accept, and before the executor issues anything, Sage
+checks the action against current evidence again, so support withdrawn while the card waited issues
+no task. A selection Sage cannot bind ends the request as blocked before any card, and says that
+other work remains possible.
+
+<Frame caption="The approval card for a catalog step bound to a DCSync of krbtgt in a lab domain. The action line carries the procedure, its preconditions, the evidence it rests on, and the target; the inputs line carries the callback and account; the planned Mythic task and intended effect follow. Click the image to read it at full size.">
+  ![An Input requested card titled Approve: dcsync-krbtgt with Accept, Reject, Respond, and Details controls. Action 1, dcsync-krbtgt through execute_capability, lists an action with its effect, steps, preconditions, source facts, target domain and account, and verifier, then inputs naming account krbtgt and callback 2. Below them, one planned inner task, drsuapi-dcsync, and the intended effect, the domain's krbtgt hash](/assets/screens/bound-catalog-card.png)
+</Frame>
+
+Before the first task, the executor also builds the capability's whole command plan and refuses it
+if a command still needs an input nothing supplies, such as a Kerberos service-proof host when
+BloodHound knows no domain controller for the domain. The refusal names each missing input and what
+supplies it, and ends with `No task was issued.` To supply a proof host for a ticket forge or a
+Kerberos context step, name the host in your own message, by its full name, its first label, or a
+UNC path's host. Sage keeps it only when it lies in the domain that procedure must prove, and the
+approval card shows it.
+
+With Autonomous Solve off, you can also name the accounts a DCSync step targets. Put them after
+`dcsync` in your message, as `account@domain`, `DOMAIN\account`, or a bare name when only one domain
+in scope fits, for example `DCSync alice and bob`. Sage offers each named account as a candidate
+when the ledger, replication or admin rights, and a live callback support it. It leaves out krbtgt,
+which `dcsync-krbtgt` covers, machine accounts, and groups, and asks you to qualify a bare name that
+more than one domain could hold. A request for an account whose credential is already recorded ends
+with the ledger row and task that prove it. To prove that account again, for example after a
+password change, ask for it explicitly: `DCSync administrator again` or
+`Re-verify administrator with DCSync`. The message must contain `dcsync`, and the account counts as
+proven only when a task from that request proves it anew.
 
 ## Objective-led supervised runs
 

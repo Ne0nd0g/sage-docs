@@ -51,6 +51,13 @@ If you contribute to Sage from a source checkout, your local edits to this track
 | `autonomous_solve` | Enable objective-led controller execution; supervised still approves each guarded action. Ignored in `conversation`, which stays read-only |
 | `policy_mode` | `hybrid` (default), `symbolic`, or `llm` capability selection |
 | `max_steps` | Model-step ceiling per chat request; unset defaults to `200`, `0` means unlimited |
+| `SAGE_OPENAI_API` | **OpenAI API**: unset keeps the adapter's usual route; `chat_completions` or `responses` selects one (OpenAI provider only) |
+| `SAGE_OPENAI_ACCESS_PROGRAM` | **OpenAI Daybreak**: `standard` (Off), `daybreak_blue`, or `daybreak_red`; Responses only, and unset sends Off |
+| `SAGE_OPENAI_SAFETY_IDENTIFIER` | **OpenAI Safety Identifier**: an optional stable pseudonym for the person using the chat, sent as `safety_identifier` |
+| `SAGE_REASONING_EFFORT` | **Reasoning Effort**: unset sends no effort (the provider's default for the model); `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max` is sent as chosen (OpenAI provider only) |
+
+The OpenAI settings and how a chat changes models are covered in
+[Choose and change a model](/guides/models).
 
 **Providers.** The four above are the tested set. Sage builds the model through LangChain's
 `init_chat_model`, so other providers may work but are unverified. Never infer the effective
@@ -78,8 +85,14 @@ container environment), not in chat configuration. Each ships commented out in `
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SAGE_STEP_MAX_TOOL_CALLS` | `20` | Tool calls one [supervised step](/understand/authority-modes#bounded-supervised-steps) may make |
-| `SAGE_STEP_MAX_ACTIVE_SECONDS` | `600` | Seconds of the specialist's own work one supervised step may spend; approval waits and the guarded action itself do not count |
-| `SAGE_STEP_MAX_CONSECUTIVE_ERRORS` | `3` | Consecutive failed tool calls that end a supervised step |
+| `SAGE_STEP_MAX_TOOL_CALLS` | unset (prompt value, `20` as shipped) | Tool calls one [supervised step](/understand/authority-modes#bounded-supervised-steps) may make, for every specialist |
+| `SAGE_STEP_MAX_ACTIVE_SECONDS` | unset (prompt value, `600` as shipped) | Seconds of the specialist's own work one supervised step may spend, for every specialist; approval waits and the guarded action itself do not count |
+| `SAGE_STEP_MAX_CONSECUTIVE_ERRORS` | unset (prompt value, `3` as shipped) | Consecutive failed tool calls that end a supervised step, for every specialist |
 | `SAGE_STEP_LEDGER_ATTRIBUTION_SECONDS` | `600` | Window after a Sage task during which a callback's first check-in is credited to that task in the [Engagement State Ledger](/guides/engagement-ledger#what-supervised-steps-record) |
+| `SAGE_ACP_SOCKET` | unset | Unix socket of an optional, separately deployed Codex worker for `/acp`, for example `/Mythic/.sage_acp/acp.sock`. Unset, `/acp` reports the profile as unconfigured. Experimental; see [Connect a coding agent](/guides/coding-agent) |
 | `SAGE_ENGAGEMENT_NETBIOS_MAP` | unset | Sage learns which FQDN each NetBIOS domain name means from the operation's own evidence. Set `off` to stop learning, or a JSON object such as `{"CORP":"corp.example.com"}` to pin names; learned pairs fill in domains the object does not name |
+
+Each specialist declares its own step limits in its prompt file's `step_bounds:` header (see
+[Edit an agent prompt](/configuration/edit-files-from-mythic#edit-an-agent-prompt)). A valid
+`SAGE_STEP_MAX_*` value overrides that limit for every specialist. A value that is not positive,
+or not a whole number for the two counts, is ignored with a warning instead of rounded.

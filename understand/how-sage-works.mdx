@@ -82,7 +82,11 @@ entirely.
 In supervised mode, each delegation to a specialist is one bounded step. The Supervisor names the
 callback, the targets, and the result the step should produce; Sage checks that brief before the
 specialist starts, allows the step one guarded action, and hands the Supervisor a typed outcome read
-from Mythic rather than the specialist's own summary. See
+from Mythic rather than the specialist's own summary. Each specialist also receives Sage's previous
+reply in the chat as labelled data, so a follow-up such as "do option B" makes sense to it, but
+never an earlier specialist's own transcript. Reports from earlier steps reach the model as
+attributed, unverified data rather than in its own voice, and a report from earlier work does not
+establish an effect in the current request. See
 [Bounded supervised steps](/understand/authority-modes#bounded-supervised-steps).
 
 Each agent's system prompt, and the TTP library the agents plan from, are plain Markdown files

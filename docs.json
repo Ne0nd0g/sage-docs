@@ -41,9 +41,11 @@
         "pages": [
           "guides/using-chat",
           "guides/chat-config",
+          "guides/models",
           "guides/engagement-ledger",
           "guides/bloodhound",
           "guides/mcp-servers",
+          "guides/coding-agent",
           "guides/custom-tls",
           "guides/findings-watcher",
           "guides/troubleshooting"

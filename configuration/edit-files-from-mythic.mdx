@@ -37,6 +37,7 @@ what the container reads, and the file browser is how you reach the files.
 | `ttps/*.md` | The TTP library the agents plan from | The next time an agent looks up a TTP |
 | `tools/` | Tool binaries you supply | The next `list_staged_tools` call or `/tools staged` |
 | `.env` | Settings shared by every chat in the container | After you restart the Sage container |
+| `container/codex/.env` | Settings for the optional, experimental [coding-agent worker](/guides/coding-agent) | After you recreate the worker on the host |
 
 ## Open the file browser
 
@@ -91,7 +92,7 @@ Each agent's system prompt is one Markdown file in `prompts/`:
 
 Edit a file, then start a new chat. Each new chat builds its agents fresh and reads every prompt
 file again, so the change needs no restart. A chat already in progress keeps the prompts it started
-with. Editing these files is how you ship your own playbook with an engagement.
+with until its mode or tool access changes, which rebuilds its agents. Editing these files is how you ship your own playbook with an engagement.
 
 Each file starts with a YAML header between two `---` lines, followed by the prompt body. This is
 the top of `mythic_operator.md`, with its comments removed and the tool list cut short:
@@ -108,12 +109,30 @@ variables:
 tools:
   - list_callbacks
   - get_all_command_args_for_payloadtype
+step_bounds:
+  tool_calls: 20
+  active_seconds: 600
+  consecutive_errors: 3
 ---
 ```
 
 The header names the agent, sets the color and icon of its card in the chat, lists the runtime
-values its body may use (`variables`), and lists the tools it may call (`tools`). Change the body
-below the header to change how the agent behaves.
+values its body may use (`variables`), lists the tools it may call (`tools`), and, for every agent
+except the Supervisor, sets the limits of each supervised step it runs (`step_bounds`). Change the
+body below the header to change how the agent behaves.
+
+`step_bounds` takes three fields: `tool_calls` (tool calls one step may run, not counting routing
+calls), `active_seconds` (the agent's own time; approval waits and guarded actions do not count),
+and `consecutive_errors` (tool errors in a row). A missing field or block uses the default shown.
+A valid `SAGE_STEP_MAX_*` value in the [container environment](/configuration/environment#container-wide-settings)
+overrides a field for every agent. See
+[Bounded supervised steps](/understand/authority-modes#bounded-supervised-steps).
+
+<Warning>
+  Values must be positive, and `tool_calls` and `consecutive_errors` whole numbers. Sage refuses to
+  build its agents from a malformed `step_bounds` block rather than guess, so new chats fail until
+  you fix the file.
+</Warning>
 
 Sage renders the body with Python's `str.format()`, which sets two rules for what you write:
 

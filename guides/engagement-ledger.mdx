@@ -37,7 +37,15 @@ submit Mythic evidence IDs for verification, but it never writes rows.
 
 Hashes and tickets found in task output or in Mythic's credential store are recorded as credential
 material. A material row proves possession, not a working credential, and does not satisfy a
-capability that needs one.
+capability that needs one. A row in Mythic's credential store counts as proof only while its text is
+a value its source task produced or imported; an operator-edited row keeps its task link in Mythic,
+but Sage lands it `pending` and says why.
+
+In supervised mode, reviewed credential material with a Kerberos key can back one attempt to build
+that account's Kerberos context, for example after a DCSync whose Mythic task failed only in its
+completion function. The approval card names the material, the account, and the callback, and says
+the material is not proved to work. Approval permits the attempt only: the context is recorded only
+if the procedure's own verifier proves it, and the material never becomes a working credential.
 
 A proven row stays in the ledger as history. When a later observation contradicts it, Sage adds a
 "no longer holds" marker with that evidence instead of rewriting the row: for example, when a later
@@ -102,7 +110,7 @@ membership does not prove current authentication or access.
 
 The Engagement State Ledger persists once written. It lives in Sage's `sage.db` SQLite database,
 keyed by the Mythic operation and the reset marker Sage stores in that operation, and it survives
-Sage restarts. A supervised chat's conversational scope does not survive a restart. See
-[Runtime state and resets](/configuration/runtime-state) for where state lives, what a restart
-does to your chats, how to archive it, and how to import a ledger that an earlier release stored
-as JSON.
+Sage restarts. Since `v0.4.0`, a chat's conversation also continues after a restart while `sage.db`
+is retained. See [Runtime state and resets](/configuration/runtime-state) for where state lives,
+what a restart does to your chats, how to archive it, and how to import a ledger that an earlier
+release stored as JSON.

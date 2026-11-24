@@ -102,8 +102,13 @@ BloodHound Enterprise is not validated.
     Open a chat and run `/bloodhound`. It connects if needed and reports two things separately:
     **Connection**, and **Ingest**, which says whether the connected server can report ingest-job
     status (see [Ingest readiness](#ingest-readiness)). It is also the safe way to ask whether
-    BloodHound is connected. The chip row above the transcript shows **BloodHound connected** once
-    the connection succeeds; see [Reading the chips](/guides/using-chat#reading-the-chips).
+    BloodHound is connected. The BloodHound chip above the transcript shows `connected` once the
+    connection succeeds and an ingest-status read answers; see
+    [Reading the chips](/guides/using-chat#reading-the-chips).
+
+    <Frame caption="/bloodhound on a connected channel: the connection was verified by a domain read, ingest is ready, and the BloodHound chip shows connected in green.">
+      ![A Sage channel with the BloodHound chip reading connected, and the reply to /bloodhound: Connection, connected to BloodHound MCP with 13 tools and verified by a live domain read; Ingest, ready, because the MCP answered an exact-job ingest status read](/assets/screens/bloodhound-connected.png)
+    </Frame>
 
     If it does not connect, check the Sage container log; see
     [When BloodHound is not connected](#when-bloodhound-is-not-connected).
@@ -125,6 +130,11 @@ BloodHound Enterprise is not validated.
     still ingesting after Sage's two-minute wait reports **Collection pending**, and a job that
     BloodHound ends as failed, partially complete, canceled, or timed out reports
     **Collection failed**.
+
+    SharpHound can finish and write its archive while still printing authentication errors for
+    some collection methods. When the collector's final output is its completion record, Sage
+    still retrieves and ingests the archive, keeps the diagnostics with the task, and its report
+    says that not every collection method is proven. Every `collect-graph` exit carries a verdict.
   </Step>
 </Steps>
 
@@ -168,14 +178,37 @@ new image: rebuild it with `sudo ./mythic-cli build sage`. For a custom checkout
 
 ## When BloodHound is not connected
 
-**Sage still works.** A missing optional dependency degrades a capability, not the product:
+**Sage still works.** A missing optional dependency degrades a capability, not the product.
+
+Sage checks what BloodHound can do on every turn and shows it on the BloodHound chip, with the
+reason in the chip's tooltip:
+
+| Chip | Meaning |
+|---|---|
+| `not configured` | No BloodHound URL or token is set for this chat. |
+| `unavailable` | BloodHound is configured but did not connect, or BloodHound CE did not answer a read. |
+| `degraded` | Graph reads work, but ingest is unavailable; see [Ingest readiness](#ingest-readiness). |
+| `connected` | Connected, and the ingest-status read answered. |
+
+<Frame caption="A conversation channel with BloodHound configured but not connected. The chip shows unavailable in amber, its tooltip gives the reason, and the chat still answers.">
+  ![A Sage chip row with BloodHound unavailable in amber, followed by a question, What is 2+2?, and Sage's answer, 2 + 2 = 4](/assets/screens/bloodhound-unavailable.png)
+</Frame>
+
+Sage does not post an availability notice on every new chat. It posts one notice in a channel only
+when a BloodHound connection that channel saw working is lost, and posts it again only after
+BloodHound reads `connected` once more. When a request reaches the BloodHound agent while BloodHound
+is `not configured` or cannot answer a read, the agent replies with an explanation of that state,
+says that it read no graph data, and names the fix, instead of letting its tools fail.
 
 - Ordinary conversation and supervised chats answer normally with no BloodHound credentials.
 - **Autonomous solves fail closed, on purpose.** A solve reasons over the attack graph, so running
   one without the graph would mean acting blind. The request is refused with a message that names
   BloodHound and repeats the setup steps.
 - Nothing is retried pointlessly: when required credentials resolve nowhere, Sage does not spawn
-  an MCP server it knows will exit. Fix the configuration and the next request tries again.
+  an MCP server it knows will exit, and it does not retry a credential set that already failed.
+  Every later turn repeats the cause as `Last failure: …` in the chip tooltip, the agent's
+  explanation, `/bloodhound`, and the log. Change the configuration and the next request tries
+  again, or run `/bloodhound force` to retry the same credentials.
 
 In the Sage container log you will see, at `WARNING`:
 

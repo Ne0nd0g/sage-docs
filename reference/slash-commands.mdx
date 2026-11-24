@@ -17,14 +17,21 @@ noted).
 | `/state wipe` | Retract every row and every current graph fact; nothing is deleted or renumbered |
 | `/mode` | Show the channel's current mode |
 | `/mode conversation\|supervised\|auto` | Switch the channel's mode |
+| `/model` | Show this chat's model and where its value comes from |
+| `/model <name>` | Change the chat's **Model** setting in Mythic; the conversation continues with the new model. Mythic lets only the channel's creator or an operation lead or admin change it. See [Choose and change a model](/guides/models) |
 | `/list` | List active Sage chat sessions |
 | `/tools` | List Sage's public Mythic tool functions, descriptions, and access requirements: a deterministic inventory, no model call |
 | `/tools staged` | List the binaries in Sage's [tool drop zone](/reference/tools-and-capabilities#tool-drop-zone): sha256, type, architecture, matching TTPs, and whether Mythic already holds them |
 | `/report [identity]` | Show retained identity/membership observations shared across assisted chats in this operation engagement, unknown access prerequisites, and next checks: one bounded check, no new task |
-| `/stop` | Cooperatively stop the running agent on this channel |
+| `/stop` | Cooperatively stop the running agent on this channel, and close the channel's coding-agent connection (its saved model selection stays) |
 | `/bloodhound [force] [dir]` | Connect, report, or rebind the BloodHound MCP, reporting connection and ingest readiness separately; see [BloodHound](/guides/bloodhound) |
 | `/mcp <list\|tools\|call\|connect\|disconnect\|policy>` | Manage MCP servers; see [Connecting MCP servers](/guides/mcp-servers) |
 | `/sandbox [shell\|python] <code>` | Run an isolated local snippet (no network or host mounts; needs no Mythic scope) |
+| `/acp` or `/acp status` | Show this chat's coding-agent connection. Experimental and configuration only: Sage sends the coding agent no prompt. See [Connect a coding agent](/guides/coding-agent) |
+| `/acp connect codex` | Connect this chat to the Codex worker you deployed |
+| `/acp models` | List the model IDs the worker offers, with the current one marked |
+| `/acp model <id>` | Select one of those models for this chat, by its exact ID |
+| `/acp disconnect` | Close this chat's connection and clear its saved selection |
 
 ## Watcher commands
 
@@ -47,5 +54,6 @@ Available with the separate `Sage Watcher` model; see the
   shared across chats in the same operation and persists once written. A new operation can show an
   empty ledger: viewing operation details or callbacks does not record an achieved effect, and
   reading `/state` does not add rows.
+- `/acp` never builds or calls a Sage model, and the `Sage Watcher` model does not offer it.
 - `/tools` and simple questions such as *"list your tools"* use the same deterministic inventory
   without a model call. Before a session is initialized, live token availability is unverified.

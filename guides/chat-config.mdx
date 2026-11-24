@@ -46,12 +46,19 @@ runs as a read-only conversation using the provider defaults.
   | Field | What it does |
   |---|---|
   | Provider | Which model provider to use: OpenAI (default), AWS Bedrock, Anthropic, or Ollama. Bedrock uses the AWS quad below; the others use API Key / API Endpoint. |
-  | Model | The model name for that provider, for example `gpt-5.5-cyber-preview` or `claude-sonnet-5`. |
-  | Reasoning Effort | Optional OpenAI-compatible reasoning setting, from None up to Maximum. Blank uses `SAGE_REASONING_EFFORT` from the environment if set, otherwise the provider default. |
+  | Model | The model name for that provider, for example `gpt-5.5-cyber-preview` or `claude-sonnet-5`. Changing it later, or running `/model <name>`, continues the chat with the new model. |
+  | OpenAI API | OpenAI provider only. **Chat Completions** or **Responses**; **Use configured default** falls back to the `SAGE_OPENAI_API` user secret, then the container environment, and with neither keeps the adapter's usual route. Some OpenAI models, including the -cyber models from GPT-5.6 Cyber on, need Responses. API Endpoint stays the base URL; Sage adds `/responses` or `/chat/completions` itself. |
+  | OpenAI Daybreak | OpenAI provider only. **Off** (standard safeguards), **Blue**, or **Red**. Any explicit choice, Off included, requires OpenAI API = **Responses**, so leave it at **Use configured default** on Chat Completions. The default falls back to the `SAGE_OPENAI_ACCESS_PROGRAM` user secret, then the container environment; on Responses with neither, Sage sends Off, never the OpenAI project's own default program. Blue and Red need an OpenAI project approved for that program. |
+  | OpenAI Safety Identifier | Optional, OpenAI provider only. A stable pseudonym for the person using the chat, sent as `safety_identifier`. Use the same value for the same person, and never a username or email address. Falls back to the `SAGE_OPENAI_SAFETY_IDENTIFIER` user secret, then the container environment. |
+  | Reasoning Effort | Optional, OpenAI provider only, from None up to Maximum. **Use configured default** falls back to the container's `SAGE_REASONING_EFFORT`; with none set, Sage sends no effort and the provider's default for the model applies. A value chosen here, None included, is sent as chosen. Supported values depend on the model. |
   | Provider Retry Policy | Optional OpenAI-compatible retry preset. Off uses the provider SDK defaults; Transient v1 retries confirmed temporary 429 and 503 responses with bounded waits. Blank uses `SAGE_PROVIDER_RETRY_POLICY` from the environment if set. |
 
+  Changing Model, OpenAI API, OpenAI Daybreak, OpenAI Safety Identifier, or Reasoning Effort on an
+  existing chat keeps its conversation. When and how to use the OpenAI settings is in
+  [Choose and change a model](/guides/models).
+
   <Frame>
-    ![The AI Configuration fields: Provider, Model, Reasoning Effort, and Provider Retry Policy](/assets/new-ai-chat/model-selection.png)
+    ![The AI Configuration fields set for an OpenAI -cyber model: Provider OpenAI, Model gpt-6-cyber, OpenAI API Responses, and OpenAI Daybreak Red, with OpenAI Safety Identifier, Reasoning Effort, and Provider Retry Policy left blank](/assets/new-ai-chat/model-selection.png)
   </Frame>
 </Accordion>
 
@@ -114,6 +121,7 @@ runs as a read-only conversation using the provider defaults.
 ## Watching a channel
 
 The chip row above the transcript reports the live configuration and connection state: provider,
-model, mode, policy, Max Steps, tool counts, BloodHound and MCP connectivity, and the round count.
-You can set the same fields mid-engagement with the pencil icon on the channel header; see
+model, mode, policy, Max Steps, tool counts, BloodHound state and MCP connectivity, and the round
+count. You can set the same fields mid-engagement with the pencil icon on the channel header, or
+click the Model chip to run `/model`; see
 [Reading the chips](/guides/using-chat#reading-the-chips).
