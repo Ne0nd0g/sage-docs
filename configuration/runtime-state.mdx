@@ -150,9 +150,11 @@ Sage v0.2.0 writes some of this state as root, so the `mv` may need `sudo`. From
 container runs Sage as the owner of the service directory and hands earlier root-owned files back
 on first start.
 
-A reinstall replaces the whole service directory, so archive this state outside
-`InstalledServices/sage/` before running `mythic-cli install` again. If you set up a
-[coding agent](/guides/coding-agent), copy `container/codex/.env` and `.sage_acp/` out as well.
+A reinstall replaces the whole service directory, including `.env`, so archive this state and copy
+`.env` outside `InstalledServices/sage/` before running `mythic-cli install` again. If you set up a
+[coding agent](/guides/coding-agent), copy `container/codex/.env` out as well;
+[Before you reinstall Sage](/guides/coding-agent#before-you-reinstall-sage) lists what to redo
+afterward.
 
 ## Operation-memory erasure
 

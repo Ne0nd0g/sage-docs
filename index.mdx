@@ -26,9 +26,9 @@ expects that step to prove, and runs it only when you approve.
 Sage installs into a Mythic server the same way a payload type or C2 profile does, and it has no
 function outside one. It runs on the control plane and operates through your Mythic payloads.
 It is not an implant, and it does not create a Sage payload callback. Sage is a native Mythic
-**chat container**, so it requires Mythic v4: chat containers do not exist before v4. Sage 0.4.0
-is developed and tested against **Mythic `v4.0.8`**. Other Mythic v4 builds may work but are
-untested. See [Limitations and validated configuration](/understand/limitations).
+**chat container**, so it requires Mythic v4: chat containers do not exist before v4. See
+[Limitations and validated configuration](/understand/limitations) for what each release was
+validated on.
 
 Three boundaries define the product:
 
@@ -55,8 +55,9 @@ Three boundaries define the product:
   <Accordion title="Auto: experimental autonomous objectives">
     Give Sage a scoped objective and it runs the observe → select → execute → verify loop without
     per-action approval. Auto is a research and evaluation capability, exercised only against the
-    [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab on development builds, and it was not
-    run live on 0.3.0. That does not establish reliability or generalization elsewhere.
+    [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab; each release's GitHub release notes say
+    whether that release ran it live. That does not establish reliability or generalization
+    elsewhere.
   </Accordion>
 </AccordionGroup>
 

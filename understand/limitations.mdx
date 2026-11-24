@@ -1,6 +1,6 @@
 ---
 title: "Limitations and validated configuration"
-description: "Which Mythic version Sage is tested against, the configuration it was last live-validated on, what that does and does not establish, and the known limits."
+description: "Which Mythic version Sage requires, how each release is validated, what that does and does not establish, and the known limits."
 ---
 
 Sage is beta software, and its live validation lags its code. This page states what has been
@@ -13,38 +13,25 @@ engagement around Sage.
   configuration, not a production readiness claim.
 </Warning>
 
-## The validated configuration
+## How releases are validated
 
-Sage requires Mythic v4, because native chat containers do not exist before v4. Sage 0.4.0 is
-developed and tested against Mythic `v4.0.8`. Other Mythic v4 builds may work but are untested, and
-0.4.0 had no separate release qualification run.
+Sage requires Mythic v4, because native chat containers do not exist before v4.
 
-The most recent full live-validated configuration recorded in the Sage repository is the one
-recorded for `v0.1.0-beta`:
-
-| Component | Validated version |
-|---|---|
-| Mythic | `v4.0.0rc5` (commit `a9add7f1f62f5b2098d1f0eb0306c4b15b8cd916`) |
-| Payload type | Apollo `v0.1.0-rc1` (commit `d44676d9eda540377ce91a6e636dd8788bc86def`) |
-| BloodHound | BloodHound CE 9.5.1 |
-| BloodHound MCP | commit `92a37dd481ce675fe552f14c9957a31dbbcd212e` |
-| Sage host | Linux arm64, Sage in Docker |
-| Model route | `sonnet-4-6` through Sage's `openai` provider via an OpenAI-compatible LiteLLM route |
-
-Releases from `v0.2.0` on are validated by the offline suite, the repository-boundary guards, the
-repo-hygiene checks, and scripted tests of the assembled chat path; `v0.2.0` had no live-range run.
-The `v0.3.0` release also ran one supervised qualification objective on GOAD against Mythic
-`v4.0.8`, reported in its
-[GitHub release notes](https://github.com/MythicAgents/Sage/releases/tag/v0.3.0); that result
-covers that one configuration and objective. The [release notes](/reference/release-notes) record
-what changed in each release.
+Each release is validated by the offline suite, the repository-boundary guards, the repo-hygiene
+checks, and scripted tests of the assembled chat path. Any live run a release receives is reported
+in that release's [GitHub release notes](https://github.com/MythicAgents/Sage/releases), with its
+image, architecture, Mythic version, model route, objective, and result; that result covers that
+one configuration and objective. Individual fixes are spot-checked live on a GOAD lab during
+development, and those checks are not a release qualification. The
+[release notes](/reference/release-notes) record what changed in each release.
 
 ## What is not validated
 
-Other operating systems and architectures; other Mythic, Apollo, BloodHound CE, or BloodHound MCP
-revisions; other model providers, routes, and models; and payload types other than Apollo are not
-validated. Sage has code paths for several of them (four model providers, a generic payload
-adapter), and those code paths are not evidence that the configuration works.
+Configurations that no release's notes report are not validated: other operating systems and
+architectures; other Mythic, Apollo, BloodHound CE, or BloodHound MCP revisions; other model
+providers, routes, and models; and payload types other than Apollo. Sage has code paths for
+several of them (four model providers, a generic payload adapter), and those code paths are not
+evidence that the configuration works.
 
 ## Known limits
 
@@ -53,15 +40,19 @@ adapter), and those code paths are not evidence that the configuration works.
   guarded action, but the quality of its proposals on another engagement is not established. The
   Supervisor does not yet plan bounded subgoals: it can hand a specialist the whole objective, so a
   [step](/understand/authority-modes#bounded-supervised-steps) runs until one of its limits or an
-  error. When the Supervisor scopes a step to the wrong catalog procedure, the request ends rather
-  than re-scoping.
+  error. A catalog step runs only an action that current evidence supports; when the Supervisor
+  selects one Sage cannot bind, the request ends blocked before any card instead of re-scoping.
+- **A closing can claim a result in plain prose.** Sage withholds a supervised closing with no step
+  behind it only when it carries one of Sage's own step-report forms. A closing that claims a result
+  in plain prose still reaches you, so check the tasks in Mythic before you rely on a reported
+  result.
 - **An interrupted approved action can have an unknown outcome.** If Sage restarts after you approve
   an action but before it saves the result, it never resends the action: your next message names
   the Mythic task it produced, or says that its outcome is unknown. In that case, check the task
   list in Mythic before you ask for the same action again.
-- **Auto mode is experimental.** It was not run live on 0.3.0, and it has been exercised only
-  against the [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab on earlier development
-  builds. That does not establish reliability or generalization on another range or on a
+- **Auto mode is experimental.** It has been exercised only against the
+  [GOAD](https://github.com/Orange-Cyberdefense/GOAD) lab, and each release's GitHub release notes
+  say whether that release ran it live. That does not establish reliability or generalization on another range or on a
   production network.
 - **The Engagement State Ledger records proven gains, not all work.** Work done through generic
   commands such as `powershell`, `shell`, or an assembly no verifier models leaves no row unless a
@@ -84,12 +75,12 @@ adapter), and those code paths are not evidence that the configuration works.
   restarted. See
   [What a restart does to your chats](/configuration/runtime-state#what-a-restart-does-to-your-chats).
 - **Coding-agent connections are experimental and do no work yet.** In 0.4.0, `/acp` connects a chat
-  to a Codex worker you build and run yourself, and selects a model; Sage sends it no prompt. See
-  [Connect a coding agent](/guides/coding-agent).
+  to a Codex worker you build and run yourself, and selects a model; Sage sends it no prompt. A Sage
+  reinstall deletes the worker's settings. See [Connect a coding agent](/guides/coding-agent).
 - **macOS Docker Desktop and OrbStack need a database override.** See
   [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
 
-Each release's other known issues, such as repeated collection proposals and chat display ordering,
+Each release's other known issues, such as repeated collection proposals and dependency advisories,
 are listed in the [release notes](/reference/release-notes). The authoritative statement of these
 boundaries is the Sage repository's [README](https://github.com/MythicAgents/Sage#limitations) and
 [security and data handling document](https://github.com/MythicAgents/Sage/blob/main/docs/SECURITY_AND_DATA_HANDLING.md).

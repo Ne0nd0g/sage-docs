@@ -9,6 +9,183 @@ authoritative. Sage follows Semantic Versioning; before 1.0, behavior and config
 between minor releases. For what each release was validated against, see
 [Limitations and validated configuration](/understand/limitations).
 
+## v0.4.0
+
+Sage 0.4.0 keeps a chat going across a Sage restart, adds OpenAI's Responses API and Daybreak
+settings, switches a chat's model in place, and binds each supervised catalog step to an action
+that current evidence supports.
+
+### Added
+
+- **Chats continue after a Sage restart.** When Sage restarts with `sage.db` kept, an existing
+  channel continues on its next request with its conversation, `/mode` override, and engagement
+  binding, and Sage says so in the channel. Nothing that grants authority carries over. When Mythic
+  sends the container's startup message, Sage settles the requests the restart left open, without a
+  model call or a task: a card still waiting stays open, and a card you already decided gets a
+  **Continue saved decision / Stop** card. An approved action the restart interrupted is never
+  resent. See
+  [What a restart does to your chats](/configuration/runtime-state#what-a-restart-does-to-your-chats).
+- **OpenAI Responses API, Daybreak, and Safety Identifier.** Three chat settings for the OpenAI
+  provider: **OpenAI API** (Chat Completions or Responses), **OpenAI Daybreak** (Off, Blue, or Red),
+  and **OpenAI Safety Identifier**. Models served only on Responses, such as OpenAI's -cyber models,
+  now work, and Responses requests are stateless (`store: false`). On Responses, Sage sends Off
+  unless you choose Blue or Red. Any Daybreak value, Off included, requires **OpenAI API =
+  Responses**. Left unset, the settings change nothing in existing requests. See
+  [OpenAI Responses API](/guides/models#openai-responses-api).
+- **Provider rejections that say what to change.** When the provider refuses a chat's route, model,
+  or reasoning effort, the error names what Sage sent and where each value came from, the setting to
+  change, and whether that change continues the chat. **Reasoning Effort** is also declared as a
+  Mythic user secret. See
+  [When the provider refuses a request](/guides/models#when-the-provider-refuses-a-request).
+- **Switch a chat's model in place.** Changing **Model**, clicking the Model chip, or running
+  `/model <name>` continues the same conversation with the new model; `/model` alone shows the model
+  and where its value comes from. Only the channel's creator or an operation lead or admin may change
+  it. Changing **OpenAI API**, **OpenAI Daybreak**, **OpenAI Safety Identifier**, or **Reasoning
+  Effort** also continues the chat; a new API key, provider, or endpoint starts a new one. See
+  [Change a chat's model](/guides/models#change-a-chats-model).
+- **BloodHound availability on its chip.** The BloodHound chip shows not configured, unavailable,
+  degraded, or connected, with a one-line reason in its tooltip. The "BloodHound is not connected"
+  notice no longer repeats; Sage sends one notice only when a connection the channel saw working is
+  lost. See
+  [When BloodHound is not connected](/guides/bloodhound#when-bloodhound-is-not-connected).
+- **Coding-agent connection (`/acp`, experimental).** A chat can connect to a Codex worker that you
+  build and run yourself, over the Agent Client Protocol, and select its model. This release covers
+  connection and model selection only: Sage sends the agent no prompt. See
+  [Connect a coding agent](/guides/coding-agent).
+- **Operator-named DCSync accounts.** With Autonomous Solve off, a supervised message containing
+  `dcsync` can name the accounts to DCSync, and `DCSync <account> again` proves a recorded account
+  anew. See
+  [Catalog steps are bound to current evidence](/understand/authority-modes#catalog-steps-are-bound-to-current-evidence).
+- **Account Kerberos context from reviewed credential material.** Supervised chat offers the account
+  Kerberos context step from credential material whose stored review cites a Kerberos key. The card
+  says the material is not proved to work, and only the procedure's own verifier records the
+  context.
+- **Operator-named proof host.** Name a host in your message to supply the proof host for a
+  supervised forge-golden-ticket or Kerberos-context step. Sage keeps it only when it lies in the
+  domain the step must prove, and the approval card shows it.
+- **Sage's verification line on a closing.** When a supervised step's catalog procedure ends
+  partial, blocked, or failed and no later step achieves it, the closing starts with a line Sage
+  writes from its own task records. See [What you can see](/guides/using-chat#what-you-can-see).
+
+### Changed
+
+- **Per-specialist step limits.** Each supervised specialist carries its own limits in its prompt's
+  `step_bounds:` header; the shipped values are unchanged at 20 tool calls, 600 seconds, and 3
+  consecutive errors. A valid `SAGE_STEP_MAX_*` value still overrides a limit for every specialist,
+  an invalid one is now ignored rather than rounded, and a malformed header stops Sage from building
+  its agents. See [Bounded supervised steps](/understand/authority-modes#bounded-supervised-steps).
+- Each specialist model call carries the tool calls and active time its step has left, and a batch
+  of parallel tool calls runs only as many calls as the step has left.
+- A step that reaches a limit gets one last model call with no tools, for at most 30 seconds, and
+  its answer goes to the Supervisor unchanged.
+- **Catalog steps bind to a current candidate.** A supervised catalog step other than graph
+  collection must select an action that current evidence supports, and the approval card shows
+  exactly that action. Sage checks it again after Accept and before any task. A selection Sage
+  cannot bind ends the request blocked before any card.
+- **A plan that needs a missing input is refused before its first task.** The report names each
+  missing input and what supplies it, and ends with `No task was issued.`
+- **Conversation models see only the tools they can run.** In conversation mode, guarded tools, file
+  staging, and guarded MCP tools are left out of the model's tool list.
+- **A BloodHound answer ends the request.** In supervised mode, once BloodHound has answered without
+  changing anything, Sage dispatches no further BloodHound analysis step in that request.
+- **Supervised closings with no step behind them.** A closing that carries one of Sage's own
+  step-report forms when no step ran in the request is withheld behind a fixed notice.
+- **A scope-refused proposal is named** in the step outcome, and if the request ends there, the
+  closing lists it as neither approved nor executed.
+- **Credential-store proof needs the source task's own value.** A credential row someone edited no
+  longer proves on its source task alone. See
+  [The Engagement State Ledger](/guides/engagement-ledger).
+- Supervised specialists see Sage's previous reply as labelled data, so a follow-up such as "do
+  option B" reaches them with the menu it answers.
+
+### Fixed
+
+- An approved supervised action is no longer issued twice after a crash (a 0.3.0 known issue). A
+  claimed approval is never resumed, and your next message gets the exact task or is told its
+  outcome is unknown.
+- A request's final message no longer appears above earlier sub-agent panels (a 0.3.0 known issue).
+- A forged-ticket request keeps the target domain it names. A parent-domain forge from a
+  child-domain source checks the parent's replication grant, and a cross-forest request is forged
+  for the domain it was approved for (a 0.3.0 known issue).
+- A krbtgt credential reference binds the named proved row even when another key ranks higher (a
+  0.3.0 known issue).
+- A deferred task still settling in Mythic ("Completion Function Running…") is no longer reported as
+  plain completed.
+- An accepted `upload_file_by_file_uuid` in supervised mode now issues its task.
+- A DCSync that the domain controller refuses is reported as replication access denied, and a step
+  Sage refused before Mythic created a task is named on its own "Not issued" line.
+- A SharpHound run that writes its archive while printing errors for some collection methods is now
+  retrieved and ingested.
+- An approved call that fails after the approval resume closes its own tool card with its real
+  result.
+- A reasoning model on Responses keeps its earlier reads after a settings correction or a restart.
+
+The [Sage changelog](https://github.com/MythicAgents/Sage/blob/main/CHANGELOG.md) lists every fix.
+
+### Security
+
+- `pyasn1` moves from 0.6.4 to 0.6.5, clearing four advisories against 0.6.4.
+- The token Mythic gives Sage's startup handler is now also used to read the operation's open chat
+  requests and settle those a restart left open. It never runs a task or a model call and never
+  applies a decision.
+- Direct OpenAI Responses requests are a new data flow. They carry the chat's content, the
+  configured safety identifier, and the Daybreak program, and are sent with `store: false`. See
+  [Security and data handling](/understand/security-and-data-handling).
+- The optional Codex worker's API key sits in `container/codex/.env`, readable by anyone with Mythic
+  access to Sage's files and by anyone with Docker access to the worker.
+
+### Upgrade
+
+- `mythic-cli install` replaces Sage's whole service directory, including `.env`, `sage.db`,
+  `.phoenix/`, and `container/codex/.env`. Archive or copy what you need first; see
+  [Clean resets](/configuration/runtime-state#clean-resets).
+- A chat started on 0.3.0 continues on 0.4.0 only when its `sage.db` is kept and Mythic's own
+  request rows match exactly one saved conversation. Otherwise Sage names the reason and asks for a
+  new chat.
+- Assign an active bot account to each operation that uses Sage, so Mythic sends the startup message
+  that lets Sage settle requests a restart left open. Without one, use Cancel on an open request to
+  free its channel.
+- A prompt file without a `step_bounds:` block runs with the shipped limits. Check any
+  `SAGE_STEP_MAX_*` value you set: an invalid one is now ignored.
+- The new `sage.db` tables are created on first start; there is no migration step.
+
+### Known issues
+
+- macOS Docker Desktop and OrbStack still need the database override described in
+  [SQLite on macOS](/configuration/runtime-state#sqlite-on-macos).
+- `pip-audit` reports advisories in six shipped packages. `dynaconf`, `ujson`, and
+  `strawberry-graphql` clear when `mythic-container` and `arize-phoenix` update their pins. The
+  `pydantic-ai-slim` fix waits for a newer LangChain integration, and the `dnspython` and
+  `opentelemetry-api` fixes are deferred to after this release.
+- Sage withholds a supervised closing with no step behind it only when it carries one of Sage's own
+  step-report forms. A closing that claims a result in plain prose still reaches you, so check the
+  tasks in Mythic before you rely on a reported result.
+- The Supervisor does not yet plan supervised steps as bounded subgoals, so a step can run until one
+  of its limits or an error.
+- A request can propose a BloodHound collection again after a successful ingest on the same
+  callback and scope; reject the repeat. An "already achieved" verdict can be followed by empty
+  delegations that end in the no-progress stop.
+- A task whose completion function failed after the agent answered, or whose output arrives only at
+  handback, can end the request as "not terminal", and an interrupted delegation can end it in
+  error even when its work is usable. The tasks and their output in Mythic are the record of what
+  ran.
+- The internal delegation envelope can appear in the visible transcript.
+- The ledger records only gains that a verifier or a rule in code proves.
+- The coding-agent connection is experimental. Chats show `disconnected` after a Sage or worker
+  restart until someone reconnects, and reinstalling Sage deletes the worker's settings; see
+  [Before you reinstall Sage](/guides/coding-agent#before-you-reinstall-sage).
+- Auto mode remains experimental.
+
+### Validation
+
+The offline suite, the repository-boundary guards, and the repo-hygiene checks pass, and the changes
+are covered by scripted tests of the assembled chat path. Individual changes were spot-checked live
+on a GOAD lab during development; those checks are not a release qualification. Any live run this
+release receives is reported in its
+[GitHub release notes](https://github.com/MythicAgents/Sage/releases), with its image,
+architecture, Mythic version, model route, objective, and result, and that result covers only that
+configuration and objective.
+
 ## v0.3.0 (2026-11-11)
 
 Sage 0.3.0 bounds and scopes each supervised step, reads every step's results from Mythic rather
@@ -159,8 +336,7 @@ The [Sage changelog](https://github.com/MythicAgents/Sage/blob/main/CHANGELOG.md
 
 The offline suite, the repository-boundary guards, and the repo-hygiene checks pass, and the
 supervised changes are covered by scripted tests of the assembled chat path. The release
-qualification runs once, in supervised mode, on a locally built image against Mythic `v4.0.8`; see
-[Limitations and validated configuration](/understand/limitations#the-validated-configuration). Its
+qualification runs once, in supervised mode, on a locally built image against Mythic `v4.0.8`. Its
 result is reported in the
 [0.3.0 GitHub release notes](https://github.com/MythicAgents/Sage/releases/tag/v0.3.0) and covers
 that one configuration and objective.

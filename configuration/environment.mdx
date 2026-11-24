@@ -52,7 +52,7 @@ If you contribute to Sage from a source checkout, your local edits to this track
 | `policy_mode` | `hybrid` (default), `symbolic`, or `llm` capability selection |
 | `max_steps` | Model-step ceiling per chat request; unset defaults to `200`, `0` means unlimited |
 | `SAGE_OPENAI_API` | **OpenAI API**: unset keeps the adapter's usual route; `chat_completions` or `responses` selects one (OpenAI provider only) |
-| `SAGE_OPENAI_ACCESS_PROGRAM` | **OpenAI Daybreak**: `standard` (Off), `daybreak_blue`, or `daybreak_red`; Responses only, and unset sends Off |
+| `SAGE_OPENAI_ACCESS_PROGRAM` | **OpenAI Daybreak**: `standard` (Off), `daybreak_blue`, or `daybreak_red`. Any value, `standard` included, requires `SAGE_OPENAI_API=responses`; unset sends Off on Responses |
 | `SAGE_OPENAI_SAFETY_IDENTIFIER` | **OpenAI Safety Identifier**: an optional stable pseudonym for the person using the chat, sent as `safety_identifier` |
 | `SAGE_REASONING_EFFORT` | **Reasoning Effort**: unset sends no effort (the provider's default for the model); `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max` is sent as chosen (OpenAI provider only) |
 

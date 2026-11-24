@@ -242,8 +242,8 @@ Edit files from Mythic (2026-11-20), `configuration/edit-files-from-mythic` (new
 - The recorded baseline above was not moved.
 
 Sage 0.4.0 pre-release pass (2026-11-23), against Sage `dev` at `2bb7564` (94 commits after
-`v0.3.0`; no `v0.4.0` tag yet). The recorded baseline above was not moved: the final pass runs
-against the tag.
+`v0.3.0`; no `v0.4.0` tag yet), then re-synced to `dev` at `50aa661` the same day (see the last
+bullets). The recorded baseline above was not moved: the final pass runs against the tag.
 
 - Restarts: rewrote `configuration/runtime-state` "What a restart does to your chats" from the README
   restart contract and `restoration.py` notice texts (restored-session notice, Continue saved decision /
@@ -275,11 +275,8 @@ against the tag.
 - One later commit, `9ad4cd4` (operator-named DCSync accounts and an explicit re-verify), adds a
   paragraph on `understand/authority-modes` from its commit message, `requested_dcsync_accounts`
   (`capabilities.py`) and its recorded request rows. No other page was re-verified against it.
-- Mythic wording (operator decision, 2026-11-23): `index`, `quickstart`, `configuration/run-from-source`
-  and `understand/limitations` now say Sage requires Mythic v4 and 0.4.0 is developed and tested
-  against Mythic `v4.0.8` (the lab version of the 0.3.0 qualification and the 2026-11-20 screenshots);
-  the 0.3.0 qualification detail stays in the release notes. The Sage README "Mythic target"
-  paragraph still names the 0.3.0 qualification; flagged upstream.
+- Mythic wording: first written as "developed and tested against Mythic `v4.0.8`", then replaced
+  at `50aa661` (below).
 - Resolved upstream flags from 2026-11-20: `2bb7564` changed the prompts README to "start a new chat"
   and the README and `.env` header to say a `.env` change needs `sudo ./mythic-cli restart sage`.
 - New upstream flags: `container/codex/SETUP.md` ("A Sage redeploy keeps this directory") and the
@@ -296,6 +293,29 @@ against the tag.
   `guides/findings-watcher` and `configuration/observability` are untouched. `/model` worked live
   with a token holding `apitoken.write`, `chat-ai.write` and `callback.read` (the model-switch check in
   `skills/sage-focused-capability-tests/`), a subset of the declared channel scopes.
-- Not done yet: `reference/release-notes` `v0.4.0` (waits on the CHANGELOG), the screenshot
-  recaptures (`assets/chat-chips.png`, `assets/new-ai-chat/model-selection.png` and new shots), and the
-  re-diff from `2bb7564` to the tag (more supervised work may land first).
+- Re-sync to `50aa661` (2026-11-23), `9ad4cd4..50aa661`, every file read with `git show 50aa661:`:
+  - `0d863c9`: the Daybreak rule (any value, Off included, from any layer, requires Responses) on
+    `guides/chat-config`, `guides/models` and `configuration/environment`; the `SAGE_REASONING_EFFORT`
+    user-secret fallback on `guides/chat-config` (`models.py` field text and `OptionalUserSecrets`).
+  - `4bd3519`: new "Before you reinstall Sage" section on `guides/coding-agent` from SETUP's section of
+    the same name, a keep/delete note in its step 3, and its Limits bullet pointing there;
+    `configuration/runtime-state` reinstall note now names `.env` and links the section. SETUP step 5
+    now matches the page's `sudo ./mythic-cli restart sage`.
+  - `7f7a15b`, `50aa661`: `reference/release-notes` `v0.4.0` written from the completed CHANGELOG
+    `[Unreleased]` section (no date in the heading until the tag); its docs-only fix entry and test
+    detail are left out. `understand/limitations` follows the README Limitations: per-release live
+    runs reported in GitHub release notes, the bind-or-block supervised sentence, auto-mode live runs
+    per release, the plain-prose closing limit, the reinstall note on coding agents. The 0.1.0-beta
+    support matrix is removed (operator decision, 2026-11-23; the README Limitations no longer carries
+    it), its section is renamed "How releases are validated", and the Apollo row on
+    `reference/tools-and-capabilities` takes the README's "live qualification has used Apollo only".
+    The same auto-mode wording on `index` and `understand/authority-modes`.
+  - Mythic wording (operator decision, 2026-11-23, after the README changed to "Requires Mythic v4"):
+    `index`, `quickstart`, `configuration/run-from-source` and `understand/limitations` say only that
+    Sage requires Mythic v4; `v4.0.8` remains only in the `v0.3.0` release notes and in the Mythic UI
+    restart-control fact on `configuration/environment`.
+  - All upstream flags above are resolved at `50aa661` (`0d863c9`, `4bd3519`, `7f7a15b`, `50aa661`).
+  - `docs/development/RELEASING.md` (maintainer release checklist) needs no page.
+- Not done yet: the recapture of `assets/new-ai-chat/model-selection.png` (its Daybreak helper text
+  predates `0d863c9`), the release date in the `v0.4.0` heading, and the re-diff from `50aa661` to the
+  tag.

@@ -129,9 +129,11 @@ access program a Responses request names:
 
 On Responses, Sage always names a program and sends Off unless you choose Blue or Red, so your
 OpenAI project's own default program is never used implicitly. Sage never sends a program on Chat
-Completions. Any explicit Daybreak value, Off included, needs **OpenAI API** set to **Responses**:
-Sage refuses the combination before it sends a request and does not change the API for you. On a
-chat that does not use Responses, leave the field at **Use configured default**.
+Completions. Any Daybreak value, Off included, needs **OpenAI API** set to **Responses**, whether
+you chose it in the chat or it comes from the `SAGE_OPENAI_ACCESS_PROGRAM` user secret or the
+container environment. Sage refuses the combination before it sends a request and does not change
+the API for you. On a chat that does not use Responses, leave the field at **Use configured
+default** and set no `SAGE_OPENAI_ACCESS_PROGRAM` value that the chat would inherit.
 
 Blue and Red need an OpenAI project approved for that program. The Sage README lists what GPT-6
 Cyber needs: **Responses** with **Red**, Daybreak Red approval, separate approval for the model, a

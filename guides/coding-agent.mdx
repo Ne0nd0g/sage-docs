@@ -91,6 +91,9 @@ key. Run the host commands from your Mythic directory, the one that holds `mythi
     ```bash
     sudo install -d -m 0700 -o 1000 -g 1000 InstalledServices/sage/.sage_acp
     ```
+
+    Restarting or rebuilding Sage keeps this directory and `container/codex/.env`. Reinstalling Sage
+    deletes both; see [Before you reinstall Sage](#before-you-reinstall-sage).
   </Step>
   <Step title="Build and start the worker">
     ```bash
@@ -149,6 +152,18 @@ cd InstalledServices/sage/container/codex && docker compose up -d --force-recrea
 ```
 
 `/acp model <id>` still changes the model per chat without touching `.env`.
+
+## Before you reinstall Sage
+
+`sudo ./mythic-cli install` replaces Sage's whole service directory. That deletes
+`container/codex/.env` with your API key, the `.sage_acp` socket directory, and Sage's own `.env`.
+Copy both `.env` files somewhere outside `InstalledServices/sage/` first. After the reinstall:
+
+1. Put your settings back into the new `container/codex/.env` and Sage's `.env`, or repeat steps 1
+   and 2.
+2. Repeat step 3 to create the socket directory again.
+3. Recreate the worker with the command under [Change the key or model](#change-the-key-or-model).
+4. Restart Sage (step 5), then run `/acp connect codex` in each chat.
 
 ## Look inside or remove the worker
 
@@ -214,5 +229,5 @@ plus `/acp.sock`, within the 107-byte limit.
   every chat shows `disconnected` until you run `/acp connect codex` again; its saved model is kept.
 - **Four connections.** Sage and the worker each allow at most four live connections at once.
 - **A reinstall removes the worker's settings.** `mythic-cli install` over an existing Sage deletes
-  `InstalledServices/sage/`, including `container/codex/.env` (with its API key) and `.sage_acp/`.
-  Save your `container/codex/.env` before you reinstall, then repeat steps 1 through 5.
+  `container/codex/.env`, with its API key, and `.sage_acp/`. See
+  [Before you reinstall Sage](#before-you-reinstall-sage).
