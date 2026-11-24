@@ -9,12 +9,12 @@ re-verification pass of every affected page.
 
 | Field | Value |
 |---|---|
-| Verified against mirror commit | `95b3c99e3056b2e874520bbb959beff347889d76` |
-| Closest tag | `v0.3.0` (exactly this commit; annotated tag object `da0d595`) |
-| Tags before that point | `v0.1.0-alpha`, `v0.1.0-beta`, `v0.2.0` |
-| Verified on | 2026-11-12 |
+| Verified against mirror commit | `cbff42f0abc54d3c64b40d3a71cffce01a057023` |
+| Closest tag | `v0.4.0` (exactly this commit; annotated tag object `d32ef8f`) |
+| Tags before that point | `v0.1.0-alpha`, `v0.1.0-beta`, `v0.2.0`, `v0.3.0` |
+| Verified on | 2026-11-23 |
 | Mirror working tree | dirty at verification time (unrelated uncommitted work); every file was read from the tag with `git show`, never from the working tree |
-| Subject to the beta posture | yes: authorized-use-only, beta status, Mythic version qualification, and autonomous-agent risk language in the Sage README must survive every sync. At `v0.3.0` the README dropped the word "beta" (it says "still maturing" and "under active development"); the operator keeps beta status in the docs (2026-11-12) |
+| Subject to the beta posture | yes: authorized-use-only, beta status, Mythic version qualification, and autonomous-agent risk language in the Sage README must survive every sync. From `v0.3.0` the README dropped the word "beta" (it says "still maturing" and "under active development"); the operator keeps beta status in the docs (2026-11-12). At `v0.4.0` the README says "Requires Mythic v4", and the docs say the same (operator decision, 2026-11-23) |
 
 ## Source map (page groups to Sage files)
 
@@ -316,6 +316,21 @@ bullets). The recorded baseline above was not moved: the final pass runs against
     restart-control fact on `configuration/environment`.
   - All upstream flags above are resolved at `50aa661` (`0d863c9`, `4bd3519`, `7f7a15b`, `50aa661`).
   - `docs/development/RELEASING.md` (maintainer release checklist) needs no page.
-- Not done yet: the recapture of `assets/new-ai-chat/model-selection.png` (its Daybreak helper text
-  predates `0d863c9`), the release date in the `v0.4.0` heading, and the re-diff from `50aa661` to the
-  tag.
+- Left as is by the operator (2026-11-23): `assets/new-ai-chat/model-selection.png`, whose Daybreak
+  helper text predates `0d863c9`. Recapture it in a later pass if wanted.
+
+Sage v0.4.0 tag (2026-11-23), against tag `v0.4.0` at `cbff42f` (annotated tag object `d32ef8f`);
+baseline moved from `95b3c99` (`v0.3.0`). The pages were verified against `50aa661` in the pass
+above, and `50aa661..cbff42f` is one commit, the release preparation:
+
+- `CHANGELOG.md`: `[Unreleased]` renamed `[0.4.0] - 2026-11-23`, with compare links; the section text
+  is unchanged, so `reference/release-notes` takes only the date in its `v0.4.0` heading.
+- `config.json` (image `ghcr.io/mythicagents/sage:0.4.0`) and `agent_capabilities.json`
+  (`agent_version` `0.4.0`): no page names the current image tag or agent version; `quickstart` says
+  only that the installer pulls the image named in `config.json`.
+- `docs/development/RELEASING.md`: maintainer checklist, no page.
+- `README.md`, `docs/releases/` and `Payload_Type/` are unchanged from `50aa661`, so no other mapped
+  page needed re-verification. The draft GitHub release for `v0.4.0` reports no live qualification
+  run and says auto mode was not run live, which matches `understand/limitations`, `index` and
+  `understand/authority-modes`. The `v0.4.0` Validation section links the releases list, because the
+  release was still a draft at verification time.
